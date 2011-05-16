@@ -64,6 +64,20 @@ static char *log_module="Transcode : ";
 #define TRANSCODE_OUTPUT_BUFFER_SIZE (TS_PACKET_SIZE * 7)
 #define PACKETS_QUEUE_LENGTH 500
 #define DEFAULT_RTP_PORT 6643
+#define FFM_PACKET_SIZE 4096 /* declared in libavformat/avformat.h before, not now */
+
+#if LIBAVCODEC_VERSION_MAJOR < 53
+#define CodecType AVMediaType
+
+// http://code.google.com/p/ffmpegthumbnailer/issues/detail?id=84
+#define CODEC_TYPE_UNKNOWN    AVMEDIA_TYPE_UNKNOWN
+#define AVMEDIA_TYPE_VIDEO      AVMEDIA_TYPE_VIDEO
+#define AVMEDIA_TYPE_AUDIO      AVMEDIA_TYPE_AUDIO
+#define CODEC_TYPE_DATA       AVMEDIA_TYPE_DATA
+#define AVMEDIA_TYPE_SUBTITLE   AVMEDIA_TYPE_SUBTITLE
+#define CODEC_TYPE_ATTACHMENT AVMEDIA_TYPE_ATTACHMENT
+#define CODEC_TYPE_NB         AVMEDIA_TYPE_NB
+#endif
 
 #if LIBAVFORMAT_VERSION_INT >= ((52<<16)+(21<<8)+0)
     #define STREAM_SAMPLE_ASPECT_RATIO
@@ -710,14 +724,14 @@ int initialize_out_video_stream(AVStream *out_stream,  AVStream *in_stream, tran
 
     AVCodec *codec = avcodec_find_encoder_by_name(NULL != options->video_codec ? options->video_codec : "mpeg4");
 
-    if (NULL == codec || CODEC_TYPE_VIDEO != codec->type) {
+    if (NULL == codec || AVMEDIA_TYPE_VIDEO != codec->type) {
         log_message( log_module, MSG_ERROR, "Couldn't find video encoder.\n");
         return 0;
     }
 
-    avcodec_get_context_defaults2(out_stream->codec, CODEC_TYPE_VIDEO);
+    avcodec_get_context_defaults2(out_stream->codec, AVMEDIA_TYPE_VIDEO);
 
-    out_stream->codec->codec_type = CODEC_TYPE_VIDEO;
+    out_stream->codec->codec_type = AVMEDIA_TYPE_VIDEO;
     out_stream->codec->codec_id = codec->id;
 
     /* Other configurable parameters */
@@ -837,7 +851,7 @@ int initialize_out_audio_stream(AVStream *out_stream,  AVStream *in_stream,
     AVCodec *codec = avcodec_find_encoder_by_name(
         NULL != options->audio_codec ? options->audio_codec : "libmp3lame");
 
-    if (NULL == codec || codec->type != CODEC_TYPE_AUDIO) {
+    if (NULL == codec || codec->type != AVMEDIA_TYPE_AUDIO) {
         log_message( log_module, MSG_ERROR, "Couldn't find audio encoder.\n");
         return 0;
     }
@@ -849,9 +863,9 @@ int initialize_out_audio_stream(AVStream *out_stream,  AVStream *in_stream,
         codec = get_latm_encoder();
     }
 
-    avcodec_get_context_defaults2(out_stream->codec, CODEC_TYPE_AUDIO);
+    avcodec_get_context_defaults2(out_stream->codec, AVMEDIA_TYPE_AUDIO);
 
-    out_stream->codec->codec_type = CODEC_TYPE_AUDIO;
+    out_stream->codec->codec_type = AVMEDIA_TYPE_AUDIO;
     out_stream->codec->codec_id = codec->id;
 
     /* Other configurable parameters */
@@ -1169,9 +1183,9 @@ void* initialize_transcode_common(transcode_thread_data_t *transcode_thread_data
         transcode_data->input_streams_transcode_data[i].output_streams_count = 0;
 //        transcode_data->input_streams_transcode_data[i].x = 0;
  
-        if (CODEC_TYPE_VIDEO == in_stream->codec->codec_type ||
-            CODEC_TYPE_AUDIO == in_stream->codec->codec_type /*||
-            CODEC_TYPE_SUBTITLE == in_stream->codec->codec_type*/) {
+        if (AVMEDIA_TYPE_VIDEO == in_stream->codec->codec_type ||
+            AVMEDIA_TYPE_AUDIO == in_stream->codec->codec_type /*||
+            AVMEDIA_TYPE_SUBTITLE == in_stream->codec->codec_type*/) {
 
             /* Initialize decoder for input stream */
             AVCodec *codec = avcodec_find_decoder(in_stream->codec->codec_id);
@@ -1192,7 +1206,7 @@ void* initialize_transcode_common(transcode_thread_data_t *transcode_thread_data
             /* WORKAROUND: specific bug - empty subtitle stream detected as audio one.
                 Skip it. */
             if (0 == in_stream->codec->sample_rate &&
-                CODEC_TYPE_AUDIO == in_stream->codec->codec_type) {
+                AVMEDIA_TYPE_AUDIO == in_stream->codec->codec_type) {
 
                 initialize_transcode_common_free(in_stream->codec, 1, NULL, NULL,
                     NULL, NULL, NULL, NULL);
@@ -1242,10 +1256,10 @@ void* initialize_transcode_common(transcode_thread_data_t *transcode_thread_data
 
             /* Initialize encoder for output stream */ 
 
-            if ((CODEC_TYPE_VIDEO == in_stream->codec->codec_type &&
+            if ((AVMEDIA_TYPE_VIDEO == in_stream->codec->codec_type &&
                     !initialize_out_video_stream(out_stream, in_stream,
                         transcode_thread_data->options)) ||
-                (CODEC_TYPE_AUDIO == in_stream->codec->codec_type &&
+                (AVMEDIA_TYPE_AUDIO == in_stream->codec->codec_type &&
                     !initialize_out_audio_stream(out_stream, in_stream, out_context,
                         transcode_thread_data->options))) {
 
@@ -1266,7 +1280,7 @@ void* initialize_transcode_common(transcode_thread_data_t *transcode_thread_data
 
             /* Calculating various options */
 
-            if (CODEC_TYPE_VIDEO == in_stream->codec->codec_type) {
+            if (AVMEDIA_TYPE_VIDEO == in_stream->codec->codec_type) {
                 if (!initialize_video_parameters(transcode_data->input_streams_transcode_data + i, 
                     &output_stream_transcode_data, in_stream, out_stream)) {
 
@@ -1277,7 +1291,7 @@ void* initialize_transcode_common(transcode_thread_data_t *transcode_thread_data
                     continue;
                 }
             }
-            else if (CODEC_TYPE_AUDIO == in_stream->codec->codec_type) {
+            else if (AVMEDIA_TYPE_AUDIO == in_stream->codec->codec_type) {
                 if (!initialize_audio_parameters(transcode_data->input_streams_transcode_data + i, 
                     &output_stream_transcode_data, in_stream, out_stream)) {
 
@@ -1288,7 +1302,7 @@ void* initialize_transcode_common(transcode_thread_data_t *transcode_thread_data
                     continue;
                 }
             }
-            else if (CODEC_TYPE_SUBTITLE == in_stream->codec->codec_type) {
+            else if (AVMEDIA_TYPE_SUBTITLE == in_stream->codec->codec_type) {
                 /* Add subtitles support here */
             }
 
@@ -1526,7 +1540,7 @@ void* initialize_transcode_ffm(transcode_thread_data_t *transcode_thread_data)
     for (i = 0; i < out_context->nb_streams; i++) {
         AVCodec *codec = avcodec_find_encoder(out_context->streams[i]->codec->codec_id);
 
-        if (NULL == codec || (CODEC_TYPE_VIDEO != codec->type && CODEC_TYPE_AUDIO != codec->type)) {
+        if (NULL == codec || (AVMEDIA_TYPE_VIDEO != codec->type && AVMEDIA_TYPE_AUDIO != codec->type)) {
             continue;
         }
 
@@ -1540,10 +1554,10 @@ void* initialize_transcode_ffm(transcode_thread_data_t *transcode_thread_data)
 
         pthread_mutex_unlock(&avlib_mutex);
 
-        if (CODEC_TYPE_VIDEO == codec->type) {
+        if (AVMEDIA_TYPE_VIDEO == codec->type) {
             output_video_streams++;
         }
-        else if (CODEC_TYPE_AUDIO == codec->type) {
+        else if (AVMEDIA_TYPE_AUDIO == codec->type) {
             output_audio_streams++;
         }
     }
@@ -1566,8 +1580,8 @@ void* initialize_transcode_ffm(transcode_thread_data_t *transcode_thread_data)
         transcode_data->input_streams_transcode_data[i].output_streams_transcode_data = NULL;
         transcode_data->input_streams_transcode_data[i].output_streams_count = 0;
 
-        if (CODEC_TYPE_VIDEO == in_stream->codec->codec_type ||
-            CODEC_TYPE_AUDIO == in_stream->codec->codec_type) {
+        if (AVMEDIA_TYPE_VIDEO == in_stream->codec->codec_type ||
+            AVMEDIA_TYPE_AUDIO == in_stream->codec->codec_type) {
 
             /* Initialize decoder for input stream */
                 
@@ -1589,7 +1603,7 @@ void* initialize_transcode_ffm(transcode_thread_data_t *transcode_thread_data)
             /* WORKAROUND: specific bug - empty subtitle stream detected as audio one.
                 Skip it. */
             if (0 == in_stream->codec->sample_rate &&
-                CODEC_TYPE_AUDIO == in_stream->codec->codec_type) {
+                AVMEDIA_TYPE_AUDIO == in_stream->codec->codec_type) {
                 
                 initialize_transcode_common_free(in_stream->codec, 1, NULL, NULL,
                     NULL, NULL, NULL, NULL);
@@ -1600,8 +1614,8 @@ void* initialize_transcode_ffm(transcode_thread_data_t *transcode_thread_data)
                 continue;
             }
 
-            if ((CODEC_TYPE_VIDEO == in_stream->codec->codec_type && is_video_initialized) ||
-                (CODEC_TYPE_AUDIO == in_stream->codec->codec_type && is_audio_initialized)) {
+            if ((AVMEDIA_TYPE_VIDEO == in_stream->codec->codec_type && is_video_initialized) ||
+                (AVMEDIA_TYPE_AUDIO == in_stream->codec->codec_type && is_audio_initialized)) {
                 /* Audio or video already initialized - skipping */
                 initialize_transcode_common_free(in_stream->codec, 1, NULL, NULL,
                     NULL, NULL, NULL, NULL);
@@ -1610,10 +1624,10 @@ void* initialize_transcode_ffm(transcode_thread_data_t *transcode_thread_data)
 
             pthread_mutex_unlock(&avlib_mutex);
 
-            if (CODEC_TYPE_VIDEO == in_stream->codec->codec_type) {
+            if (AVMEDIA_TYPE_VIDEO == in_stream->codec->codec_type) {
                 transcode_data->input_streams_transcode_data[i].output_streams_count = output_video_streams;
             }
-            else if (CODEC_TYPE_AUDIO == in_stream->codec->codec_type) {
+            else if (AVMEDIA_TYPE_AUDIO == in_stream->codec->codec_type) {
                 transcode_data->input_streams_transcode_data[i].output_streams_count = output_audio_streams;
             }
 
@@ -1636,13 +1650,13 @@ void* initialize_transcode_ffm(transcode_thread_data_t *transcode_thread_data)
                     output_stream_transcode_data_t *output_stream_transcode_data =
                         transcode_data->input_streams_transcode_data[i].output_streams_transcode_data + good_streams_counter;
 
-                    if (CODEC_TYPE_VIDEO == in_stream->codec->codec_type) {
+                    if (AVMEDIA_TYPE_VIDEO == in_stream->codec->codec_type) {
                         if (!initialize_video_parameters(transcode_data->input_streams_transcode_data + i, 
                             output_stream_transcode_data, in_stream, out_context->streams[j])) {
                             continue;
                         }
                     }
-                    else if (CODEC_TYPE_AUDIO == in_stream->codec->codec_type) {
+                    else if (AVMEDIA_TYPE_AUDIO == in_stream->codec->codec_type) {
                         if (!initialize_audio_parameters(transcode_data->input_streams_transcode_data + i, 
                             output_stream_transcode_data, in_stream, out_context->streams[j])) {
                             continue;
@@ -1667,10 +1681,10 @@ void* initialize_transcode_ffm(transcode_thread_data_t *transcode_thread_data)
                     smallest_start_time = in_stream->start_time;
                 }
 
-                if (CODEC_TYPE_VIDEO == in_stream->codec->codec_type) {
+                if (AVMEDIA_TYPE_VIDEO == in_stream->codec->codec_type) {
                     is_video_initialized = 1;
                 }
-                else if (CODEC_TYPE_AUDIO == in_stream->codec->codec_type) {
+                else if (AVMEDIA_TYPE_AUDIO == in_stream->codec->codec_type) {
                     is_audio_initialized = 1;
                 }
             }
@@ -1859,7 +1873,7 @@ int write_frames_from_queue(AVFormatContext *out_context, ref_queue_t *queue, in
     AVPacket *packet;
     while (NULL != (packet= ref_queue_dequeue(queue))) {
 
-        /*if (out_context->streams[packet->stream_index]->codec->codec_type == CODEC_TYPE_VIDEO) {
+        /*if (out_context->streams[packet->stream_index]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
             printf("video\n");
         }
         else {
@@ -1909,8 +1923,8 @@ int write_succeeded_frame(transcode_data_t *transcode_data, int input_stream_ind
 
     out_packet.stream_index = out_stream->index;
     
-    if ((coded_frame && coded_frame->key_frame) || CODEC_TYPE_AUDIO == out_stream->codec->codec_type) {
-        out_packet.flags |= PKT_FLAG_KEY;
+    if ((coded_frame && coded_frame->key_frame) || AVMEDIA_TYPE_AUDIO == out_stream->codec->codec_type) {
+        out_packet.flags |=AV_PKT_FLAG_KEY;
     }
 
     out_packet.data = outbuf;
@@ -1954,7 +1968,7 @@ int write_succeeded_frame(transcode_data_t *transcode_data, int input_stream_ind
                 /* Do we need to output packet?*/
                 int do_packet_output = 0;
 
-                if (CODEC_TYPE_VIDEO == stream_data->out_stream->codec->codec_type) {
+                if (AVMEDIA_TYPE_VIDEO == stream_data->out_stream->codec->codec_type) {
                     do_packet_output =
                         (double)stream_data->written_frames *
                         stream_data->out_stream->codec->time_base.num /
@@ -1966,7 +1980,7 @@ int write_succeeded_frame(transcode_data_t *transcode_data, int input_stream_ind
                         printf("------------- Video\n");
                     }*/
                 }
-                else if (CODEC_TYPE_AUDIO == stream_data->out_stream->codec->codec_type) {
+                else if (AVMEDIA_TYPE_AUDIO == stream_data->out_stream->codec->codec_type) {
                     do_packet_output =
                         (double)stream_data->written_frames *
                         stream_data->out_stream->codec->frame_size /
@@ -2092,7 +2106,7 @@ void transcode(void *transcode_avlib_handle, transcode_thread_data_t *transcode_
             goto FREE_PACKET_AND_CONTINUE;
         }
  
-        if (CODEC_TYPE_VIDEO == in_stream->codec->codec_type) {
+        if (AVMEDIA_TYPE_VIDEO == in_stream->codec->codec_type) {
 
             /* Decode video */
 
@@ -2190,7 +2204,7 @@ void transcode(void *transcode_avlib_handle, transcode_thread_data_t *transcode_
                 }
             }
         }
-        else if (CODEC_TYPE_AUDIO == in_stream->codec->codec_type) {
+        else if (AVMEDIA_TYPE_AUDIO == in_stream->codec->codec_type) {
 
             /* Decode audio */
  
@@ -2308,7 +2322,7 @@ void transcode(void *transcode_avlib_handle, transcode_thread_data_t *transcode_
                 }
             }                    
          }
-         else if (CODEC_TYPE_SUBTITLE == in_stream->codec->codec_type) {
+         else if (AVMEDIA_TYPE_SUBTITLE == in_stream->codec->codec_type) {
          }
 
 FREE_PACKET_AND_CONTINUE:
@@ -2366,13 +2380,13 @@ void show_codecs(void)
         last_name= p2->name;
 
         switch(p2->type) {
-        case CODEC_TYPE_VIDEO:
+        case AVMEDIA_TYPE_VIDEO:
             type_str = "V";
             break;
-        case CODEC_TYPE_AUDIO:
+        case AVMEDIA_TYPE_AUDIO:
             type_str = "A";
             break;
-        case CODEC_TYPE_SUBTITLE:
+        case AVMEDIA_TYPE_SUBTITLE:
             type_str = "S";
             break;
         default:
