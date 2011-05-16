@@ -298,7 +298,7 @@ int create_sdp(AVFormatContext *ac[], int n_files, char *buff, int size)
 {
     /* Create SDP 'header' using default ffmpeg routine */
 
-    if (0 != avf_sdp_create(ac, n_files, buff, size)) {
+    if (0 != av_sdp_create(ac, n_files, buff, size)) {
         return -1;
     }
 
@@ -391,7 +391,7 @@ int create_sdp(AVFormatContext *ac[], int n_files, char *buff, int size)
             }
 
             default: /* Create SDP lines using default ffmpeg routine */
-                if (0 == avf_sdp_create(ac + i, 1, buff2, size) &&
+                if (0 == av_sdp_create(ac + i, 1, buff2, size) &&
                     NULL != (p = strstr(buff2, "m="))) {
 
                     len = strlen(p);
@@ -457,7 +457,7 @@ int write_output_packet(void *opaque, uint8_t *buf, int buf_size)
     return buf_size;
 }
 
-ByteIOContext* create_input_byte_context(data_queue_t *queue, pthread_mutex_t *queue_mutex,
+AVIOContext* create_input_byte_context(data_queue_t *queue, pthread_mutex_t *queue_mutex,
     int *terminate_thread_flag, int input_buffer_size)
 {
     /* Allocate input buffer */
@@ -485,9 +485,9 @@ ByteIOContext* create_input_byte_context(data_queue_t *queue, pthread_mutex_t *q
     context_data->no_data_counter = 0;
     context_data->data_counter = 0;
     
-    /* Creating ByteIOContext using input_buffer */
+    /* Creating AVIOContext using input_buffer */
 
-    ByteIOContext *input_io = av_alloc_put_byte(input_buffer, input_buffer_size, 0, context_data,
+    AVIOContext *input_io = avio_alloc_context(input_buffer, input_buffer_size, 0, context_data,
         read_input_packet,
         NULL,
         NULL);
@@ -504,7 +504,7 @@ ByteIOContext* create_input_byte_context(data_queue_t *queue, pthread_mutex_t *q
     return input_io;
 }
 
-ByteIOContext* create_output_byte_context(int socket, struct sockaddr_in *socket_addr, int output_buffer_size)
+AVIOContext* create_output_byte_context(int socket, struct sockaddr_in *socket_addr, int output_buffer_size)
 {
     /* Allocate output buffer */
 
@@ -528,9 +528,9 @@ ByteIOContext* create_output_byte_context(int socket, struct sockaddr_in *socket
     context_data->socket = socket;
     context_data->socket_addr = socket_addr;
 
-    /* Creating ByteIOContext using input_buffer */
+    /* Creating AVIOContext using input_buffer */
 
-    ByteIOContext *output_io = av_alloc_put_byte(output_buffer, output_buffer_size, 1, context_data,
+    AVIOContext *output_io = avio_alloc_context(output_buffer, output_buffer_size, 1, context_data,
         NULL,
         write_output_packet,
         NULL);
@@ -548,7 +548,7 @@ ByteIOContext* create_output_byte_context(int socket, struct sockaddr_in *socket
     return output_io;
 }
 
-void free_byte_context(ByteIOContext *input_output_context)
+void free_byte_context(AVIOContext *input_output_context)
 {
     av_free(input_output_context->buffer);
     free(input_output_context->opaque);
@@ -562,7 +562,7 @@ void free_format_context(AVFormatContext *context, int input, int streaming_type
     }
     else if (NULL != context->pb &&
             (STREAMING_TYPE_RTP == streaming_type || STREAMING_TYPE_FFM == streaming_type)) {
-        url_fclose(context->pb);
+        avio_close(context->pb);
     }
 
     unsigned int i;
@@ -599,7 +599,7 @@ void free_format_context(AVFormatContext *context, int input, int streaming_type
 AVFormatContext *create_input_format_context(data_queue_t *queue, pthread_mutex_t *queue_mutex,
     int *terminate_thread_flag, int input_buffer_size)
 {
-    ByteIOContext *input_io = create_input_byte_context(queue, queue_mutex,
+    AVIOContext *input_io = create_input_byte_context(queue, queue_mutex,
         terminate_thread_flag, input_buffer_size);
 
     if (NULL == input_io) {
@@ -683,7 +683,7 @@ AVFormatContext *create_output_format_context(int socket, struct sockaddr_in *so
 
     if (NULL != url) {
         if (open_byte_context) {
-            url_fopen(&out_context->pb, url, URL_WRONLY);
+            avio_open(&out_context->pb, url, URL_WRONLY);
         }
         strcpy(out_context->filename, url);
     }
@@ -953,7 +953,7 @@ transcode_data_t* initialize_transcode_data(transcode_thread_data_t *transcode_t
     }
 
     /* Input format initialized */
-    dump_format(in_context, 0, "stream", 0);
+    av_dump_format(in_context, 0, "stream", 0);
 
     transcode_data_t *transcode_data = malloc(sizeof(transcode_data_t));
 
@@ -1326,7 +1326,7 @@ void* initialize_transcode_common(transcode_thread_data_t *transcode_thread_data
                     continue;
                 }
 
-                dump_format(out_context, 0, out_context->filename, 1);
+                av_dump_format(out_context, 0, out_context->filename, 1);
 
                 ref_queue_enqueue(&transcode_data->out_contexts, out_context);
 
@@ -1378,7 +1378,7 @@ void* initialize_transcode_common(transcode_thread_data_t *transcode_thread_data
             char *buff = malloc(10240);
 
             if (NULL != buff) {
-                /*avf_sdp_create(out_contexts, output_contexts_counter, buff, 10240);*/
+                /*av_sdp_create(out_contexts, output_contexts_counter, buff, 10240);*/
                 if (0 == create_sdp(out_contexts, output_contexts_counter, buff, 10240)) {
                     fprintf(sdp_file, "%s", buff);
                 }
@@ -1414,7 +1414,7 @@ void* initialize_transcode_common(transcode_thread_data_t *transcode_thread_data
             goto INITIALIZE_TRANSCODING_ERROR;
         }
 
-        dump_format(out_context, 0, out_context->filename, 1);
+        av_dump_format(out_context, 0, out_context->filename, 1);
     }
 
     free(out_contexts);
@@ -1481,7 +1481,7 @@ void* initialize_transcode_ffm(transcode_thread_data_t *transcode_thread_data)
 
     pthread_mutex_unlock(&avlib_mutex);
 
-    dump_format(ffm_format_context, 0, transcode_thread_data->options->ffm_url, 0);
+    av_dump_format(ffm_format_context, 0, transcode_thread_data->options->ffm_url, 0);
 
     /* Copy FFM streams to output context (approach from ffmpeg sources) */
 
@@ -1503,7 +1503,7 @@ void* initialize_transcode_ffm(transcode_thread_data_t *transcode_thread_data)
 
     av_close_input_file(ffm_format_context);
 
-    url_fopen(&out_context->pb, out_context->filename, URL_WRONLY);
+    avio_open(&out_context->pb, out_context->filename, URL_WRONLY);
 
     if (NULL == out_context->pb) {
         log_message( log_module, MSG_ERROR, "Failed to open FFM feed.\n");
@@ -1516,7 +1516,7 @@ void* initialize_transcode_ffm(transcode_thread_data_t *transcode_thread_data)
         return NULL;
     }
 
-    dump_format(out_context, 0, out_context->filename, 1);
+    av_dump_format(out_context, 0, out_context->filename, 1);
 
     /* Open output streams for transcoding */
 
@@ -1705,7 +1705,7 @@ void* initialize_transcode_ffm(transcode_thread_data_t *transcode_thread_data)
         return NULL;
     }
 
-    //dump_format(out_context, 0, out_context->filename, 1);
+    //av_dump_format(out_context, 0, out_context->filename, 1);
 
     return transcode_data;
 }
