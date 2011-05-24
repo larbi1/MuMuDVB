@@ -471,7 +471,7 @@ int write_output_packet(void *opaque, uint8_t *buf, int buf_size)
     return buf_size;
 }
 
-AVIOContext* create_input_byte_context(data_queue_t *queue, pthread_mutex_t *queue_mutex,
+ByteIOContext* create_input_byte_context(data_queue_t *queue, pthread_mutex_t *queue_mutex,
     int *terminate_thread_flag, int input_buffer_size)
 {
     /* Allocate input buffer */
@@ -499,9 +499,9 @@ AVIOContext* create_input_byte_context(data_queue_t *queue, pthread_mutex_t *que
     context_data->no_data_counter = 0;
     context_data->data_counter = 0;
     
-    /* Creating AVIOContext using input_buffer */
+    /* Creating ByteIOContext using input_buffer */
 
-    AVIOContext *input_io = avio_alloc_context(input_buffer, input_buffer_size, 0, context_data,
+    ByteIOContext *input_io = avio_alloc_context(input_buffer, input_buffer_size, 0, context_data,
         read_input_packet,
         NULL,
         NULL);
@@ -518,7 +518,7 @@ AVIOContext* create_input_byte_context(data_queue_t *queue, pthread_mutex_t *que
     return input_io;
 }
 
-AVIOContext* create_output_byte_context(int socket, struct sockaddr_in *socket_addr, int output_buffer_size)
+ByteIOContext* create_output_byte_context(int socket, struct sockaddr_in *socket_addr, int output_buffer_size)
 {
     /* Allocate output buffer */
 
@@ -542,9 +542,9 @@ AVIOContext* create_output_byte_context(int socket, struct sockaddr_in *socket_a
     context_data->socket = socket;
     context_data->socket_addr = socket_addr;
 
-    /* Creating AVIOContext using input_buffer */
+    /* Creating ByteIOContext using input_buffer */
 
-    AVIOContext *output_io = avio_alloc_context(output_buffer, output_buffer_size, 1, context_data,
+    ByteIOContext *output_io = avio_alloc_context(output_buffer, output_buffer_size, 1, context_data,
         NULL,
         write_output_packet,
         NULL);
@@ -562,7 +562,7 @@ AVIOContext* create_output_byte_context(int socket, struct sockaddr_in *socket_a
     return output_io;
 }
 
-void free_byte_context(AVIOContext *input_output_context)
+void free_byte_context(ByteIOContext *input_output_context)
 {
     av_free(input_output_context->buffer);
     free(input_output_context->opaque);
@@ -613,7 +613,7 @@ void free_format_context(AVFormatContext *context, int input, int streaming_type
 AVFormatContext *create_input_format_context(data_queue_t *queue, pthread_mutex_t *queue_mutex,
     int *terminate_thread_flag, int input_buffer_size)
 {
-    AVIOContext *input_io = create_input_byte_context(queue, queue_mutex,
+    ByteIOContext *input_io = create_input_byte_context(queue, queue_mutex,
         terminate_thread_flag, input_buffer_size);
 
     if (NULL == input_io) {
@@ -2110,7 +2110,7 @@ void transcode(void *transcode_avlib_handle, transcode_thread_data_t *transcode_
 
             /* Decode video */
 
-            bytes_decoded = avcodec_decode_video(in_stream->codec,
+            bytes_decoded = avcodec_decode_video(in_stream->codec, /* TODO : Use avcodec_decode_video2 instead. */
                 frame, &is_frame_finished, packet.data, packet.size);
 
             if (0 >= bytes_decoded) {
@@ -2211,7 +2211,7 @@ void transcode(void *transcode_avlib_handle, transcode_thread_data_t *transcode_
             int result_bytes = TRANSCODE_BUF_SIZE;
 
             /* Decoding audio to input buffer */
-            bytes_decoded = avcodec_decode_audio2(in_stream->codec, inbuf,
+            bytes_decoded = avcodec_decode_audio2(in_stream->codec, inbuf, /* TODO : Use avcodec_decode_audio3 instead. */
                 &result_bytes, packet.data, packet.size);
 
             if (0 > bytes_decoded) {
