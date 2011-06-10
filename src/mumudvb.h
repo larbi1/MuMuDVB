@@ -304,6 +304,8 @@ typedef struct mumudvb_channel_t{
   int socketIn;
   /**Unicast listening IPv6 socket*/
   struct sockaddr_in sIn6;
+  /**Unicast listening IPv6 socket*/
+  int socketIn6;
 
   /**The sap playlist group*/
   char sap_group[SAP_GROUP_LENGTH];

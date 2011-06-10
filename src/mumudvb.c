@@ -1423,13 +1423,13 @@ int
   if(unicast_vars.unicast6)
   {
     log_message("Unicast: ", MSG_INFO,"We open the Master http IPv6 socket for address [%s]:%d\n",unicast_vars.ip6Out, unicast_vars.portOut);
-    unicast_create_listening_socket6(UNICAST_MASTER, -1, unicast_vars.ip6Out, unicast_vars.portOut, &unicast_vars.sIn6, &unicast_vars.socketIn, &fds, &unicast_vars);
+    unicast_create_listening_socket6(UNICAST_MASTER, -1, unicast_vars.ip6Out, unicast_vars.portOut, &unicast_vars.sIn6, &unicast_vars.socketIn6, &fds, &unicast_vars);
     /** open the unicast listening connections fo the channels */
     for (curr_channel = 0; curr_channel < chan_and_pids.number_of_channels; curr_channel++)
       if(chan_and_pids.channels[curr_channel].unicast_port)
     {
       log_message("Unicast: ", MSG_INFO,"We open the channel %d http socket address %s:%d\n",curr_channel, unicast_vars.ipOut, chan_and_pids.channels[curr_channel].unicast_port);
-      unicast_create_listening_socket6(UNICAST_LISTEN_CHANNEL, curr_channel, unicast_vars.ip6Out,chan_and_pids.channels[curr_channel].unicast_port , &chan_and_pids.channels[curr_channel].sIn6, &chan_and_pids.channels[curr_channel].socketIn, &fds, &unicast_vars);
+      unicast_create_listening_socket6(UNICAST_LISTEN_CHANNEL, curr_channel, unicast_vars.ip6Out,chan_and_pids.channels[curr_channel].unicast_port , &chan_and_pids.channels[curr_channel].sIn6, &chan_and_pids.channels[curr_channel].socketIn6, &fds, &unicast_vars);
 
     }
   }
@@ -1943,7 +1943,9 @@ int mumudvb_close(monitor_parameters_t *monitor_thread_params, unicast_parameter
     if(chan_and_pids.channels[curr_channel].socketOut6>0)
       close (chan_and_pids.channels[curr_channel].socketOut6);
     if(chan_and_pids.channels[curr_channel].socketIn>0)
-      close (chan_and_pids.channels[curr_channel].socketIn); 
+      close (chan_and_pids.channels[curr_channel].socketIn);
+    if(chan_and_pids.channels[curr_channel].socketIn6>0)
+      close (chan_and_pids.channels[curr_channel].socketIn6); 
       //Free the channel structures
     if(chan_and_pids.channels[curr_channel].pmt_packet)
       free(chan_and_pids.channels[curr_channel].pmt_packet);
