@@ -1230,6 +1230,13 @@ unicast_send_play_list_multicast (int number_of_channels, mumudvb_channel_t *cha
                           vlcchar,
                           channels[curr_channel].ip4Out,
                           channels[curr_channel].portOut);
+
+      unicast_reply_write(reply, "#EXTINF:0,%s\r\n%s://%s[%s]:%d\r\n",
+                          channels[curr_channel].name,
+                          urlheader,
+                          vlcchar,
+                          channels[curr_channel].ip6Out,
+                          channels[curr_channel].portOut);
     }
 
     unicast_reply_send(reply, Socket, 200, "audio/x-mpegurl");
