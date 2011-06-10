@@ -326,3 +326,82 @@ makeTCPclientsocket (char *szAddr, unsigned short port,
 }
 
 
+/** @brief create a TCP receiver socket.
+ *
+ * Create a socket for waiting the HTTP connection
+ */
+int
+makeTCPclientsocket6 (char *szAddr, unsigned short port, 
+	    struct sockaddr_in6 *sSockAddr)
+{
+  int iRet, iLoop = 1;
+
+  int iSocket = socket (AF_INET6, SOCK_STREAM, 0); //TCP
+
+  if (iSocket < 0)
+    {
+      log_message( log_module,  MSG_ERROR, "socket() failed.\n");
+      return -1;
+    }
+/*
+Sous Linux, quand une socket écoute sur
+l'adresse spéciale ::, elle écoute aussi sur l'adresse spéciale 0.0.0.0 à
+moins de spécifier l'option IPV6_ONLY à la socket.
+ */
+
+  sSockAddr->sin6_family = AF_INET6;
+  sSockAddr->sin6_port = htons (port);
+  iRet = setsockopt (iSocket, SOL_SOCKET, SO_REUSEADDR, &iLoop, sizeof (int));
+
+/*	
+  //struct sockaddr_in6  m_Address;
+  //m_Address.sin6_addr = in6addr_any;
+  int on = 1;
+  if (setsockopt(&sSockAddr, IPPROTO_IPV6, IPV6_V6ONLY,
+  	(char *)&on, sizeof(on)) == -1)
+         perror("setsockopt IPV6_V6ONLY");
+  else
+         printf("IPV6_V6ONLY set0");
+ */
+  iRet=inet_pton (AF_INET6, szAddr,&sSockAddr->sin6_addr); 
+  if (iRet == 0)
+    {
+      log_message( log_module,  MSG_ERROR,"inet_pton failed : %s\n", strerror(errno));
+      return -1;
+    }
+
+  if (iRet < 0)
+    {
+      log_message( log_module,  MSG_ERROR,"setsockopt SO_REUSEADDR failed : %s\n", strerror(errno));
+      return -1;
+    }
+
+
+  if (bind (iSocket, (struct sockaddr *) sSockAddr, sizeof (*sSockAddr)))
+    {
+      log_message( log_module,  MSG_ERROR, "bind failed : %s\n", strerror(errno));
+      return -1;
+    }
+
+  iRet = listen(iSocket,10);
+  if (iRet < 0)
+    {
+      log_message( log_module,  MSG_ERROR,"listen failed : %s\n",strerror(errno));
+      return -1;
+    }
+
+  //Now we set this socket to be non blocking because we poll it
+  int flags;
+  flags = fcntl(iSocket, F_GETFL, 0);
+  flags |= O_NONBLOCK;
+  if (fcntl(iSocket, F_SETFL, flags) < 0)
+    {
+      log_message( log_module, MSG_ERROR,"Set non blocking failed : %s\n",strerror(errno));
+      return -1;
+    }
+
+
+  return iSocket;
+}
+
+

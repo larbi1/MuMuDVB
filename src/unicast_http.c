@@ -92,7 +92,7 @@ unicast_send_channel_traffic_js (int number_of_channels, mumudvb_channel_t *chan
 int
 unicast_send_xml_state (int number_of_channels, mumudvb_channel_t* channels, int Socket, strength_parameters_t* strengthparams, autoconf_parameters_t* autoconf_vars, void* cam_vars_v);
 int
-unicast_send_cam_menu (int Socket, void *cam_vars);
+unicast_send_caunicast_create_listening_socketm_menu (int Socket, void *cam_vars);
 int
 unicast_send_cam_action (int Socket, char *Key, void *cam_vars);
 
@@ -150,11 +150,41 @@ int read_unicast_configuration(unicast_parameters_t *unicast_vars, mumudvb_chann
       }
     }
   }
+  if (!strcmp (substring, "ip6_http"))
+  {
+    substring = strtok (NULL, delimiteurs);
+    if(strlen(substring)>39)
+    {
+      log_message( log_module,  MSG_ERROR,
+                   "The Ipv6 address %s is too long.\n", substring);
+                   exit(ERROR_CONF);
+    }
+    sscanf (substring, "%s\n", unicast_vars->ip6Out);
+    if(unicast_vars->ip6Out)
+    {
+      if(unicast_vars->unicast==0)
+      {
+        log_message( log_module,  MSG_WARN,"You should use the option \"unicast\" to activate unicast instead of ip6_http\n");
+        unicast_vars->unicast=1;
+        log_message( log_module,  MSG_WARN,"You have enabled the support for HTTP Unicast. This feature is quite youg, please report any bug/comment\n");
+      }
+    }
+  }
   else if (!strcmp (substring, "unicast"))
   {
     substring = strtok (NULL, delimiteurs);
     unicast_vars->unicast = atoi (substring);
     if(unicast_vars->unicast)
+    {
+      log_message( log_module,  MSG_WARN,
+                   "You have enabled the support for HTTP Unicast. This feature is quite youg, please report any bug/comment\n");
+    }
+  }
+  else if (!strcmp (substring, "unicast6"))
+  {
+    substring = strtok (NULL, delimiteurs);
+    unicast_vars->unicast6 = atoi (substring);
+    if(unicast_vars->unicast6)
     {
       log_message( log_module,  MSG_WARN,
                    "You have enabled the support for HTTP Unicast. This feature is quite youg, please report any bug/comment\n");
@@ -261,6 +291,53 @@ int unicast_create_listening_socket(int socket_type, int socket_channel, char *i
   else
   {
     log_message( log_module,  MSG_WARN, "Problem creating the socket %s:%d : %s\n",ipOut,port,strerror(errno) );
+    return -1;
+  }
+
+  return 0;
+
+}
+
+/** @brief Create a listening IPv6 socket and add it to the list of polling file descriptors if success
+*
+*
+*
+*/
+int unicast_create_listening_socket6(int socket_type, int socket_channel, char *ip6Out, int port, struct sockaddr_in6 *sIn, int *socketIn, fds_t *fds, unicast_parameters_t *unicast_vars)
+{
+  *socketIn= makeTCPclientsocket6(ip6Out, port, sIn);
+  //We add them to the poll descriptors
+  if(*socketIn>0)
+  {
+    fds->pfdsnum++;
+    log_message( log_module, MSG_DEBUG, "unicast : fds->pfdsnum : %d\n", fds->pfdsnum);
+    fds->pfds=realloc(fds->pfds,(fds->pfdsnum+1)*sizeof(struct pollfd));
+    if (fds->pfds==NULL)
+    {
+      log_message( log_module, MSG_ERROR,"Problem with realloc : %s file : %s line %d\n",strerror(errno),__FILE__,__LINE__);
+      return -1;
+    }
+    fds->pfds[fds->pfdsnum-1].fd = *socketIn;
+    fds->pfds[fds->pfdsnum-1].events = POLLIN | POLLPRI;
+    fds->pfds[fds->pfdsnum-1].revents = 0;
+    fds->pfds[fds->pfdsnum].fd = 0;
+    fds->pfds[fds->pfdsnum].events = POLLIN | POLLPRI;
+    fds->pfds[fds->pfdsnum].revents = 0;
+    //Information about the descriptor
+    unicast_vars->fd_info=realloc(unicast_vars->fd_info,(fds->pfdsnum)*sizeof(unicast_fd_info_t));
+    if (unicast_vars->fd_info==NULL)
+    {
+      log_message( log_module, MSG_ERROR,"Problem with realloc : %s file : %s line %d\n",strerror(errno),__FILE__,__LINE__);
+      return -1;
+    }
+    //Master connection
+    unicast_vars->fd_info[fds->pfdsnum-1].type=socket_type;
+    unicast_vars->fd_info[fds->pfdsnum-1].channel=socket_channel;
+    unicast_vars->fd_info[fds->pfdsnum-1].client=NULL;
+  }
+  else
+  {
+    log_message( log_module,  MSG_WARN, "Problem creating the IPv6 socket %s:%d : %s\n",ip6Out,port,strerror(errno) );
     return -1;
   }
 
@@ -423,6 +500,65 @@ unicast_client_t *unicast_accept_connection(unicast_parameters_t *unicast_vars, 
   }
 
   tempClient=unicast_add_client(unicast_vars, tempSocketAddrIn, tempSocket);
+  if( tempClient == NULL)
+  {
+    //We cannot create the client, we close the socket cleanly
+    close(tempSocket);
+    return NULL;
+  }
+
+  return tempClient;
+
+}
+
+
+/** @brief Accept an IPv6 incoming connection
+*
+*
+* @param unicast_vars the unicast parameters
+* @param socketIn the socket on wich the connection was made
+*/
+unicast_client_t *unicast_accept_connection6(unicast_parameters_t *unicast_vars, int socketIn)
+{
+
+  unsigned int l;
+  int tempSocket;
+  unicast_client_t *tempClient;
+  struct sockaddr_in6 tempSocketAddrIn;
+
+  l = sizeof(struct sockaddr);
+  tempSocket = accept(socketIn, (struct sockaddr *) &tempSocketAddrIn, &l);
+  if (tempSocket < 0 )
+  {
+    log_message( log_module, MSG_WARN,"Error when accepting the incoming connection : %s\n", strerror(errno));
+    return NULL;
+  }
+  struct sockaddr_in6 tempSocketAddr;
+  l = sizeof(struct sockaddr);
+  getsockname(tempSocket, (struct sockaddr *) &tempSocketAddr, &l);
+  //log_message( log_module, MSG_FLOOD,"New connection from %s:%d to %s:%d \n",inet_aton(tempSocketAddrIn.sin6_addr), tempSocketAddrIn.sin6_port,inet_ntoa(tempSocketAddr.sin6_addr), tempSocketAddr.sin6_port);
+
+  //Now we set this socket to be non blocking because we poll it
+  int flags;
+  flags = fcntl(tempSocket, F_GETFL, 0);
+  flags |= O_NONBLOCK;
+  if (fcntl(tempSocket, F_SETFL, flags) < 0)
+  {
+    log_message( log_module, MSG_ERROR,"Set non blocking failed : %s\n",strerror(errno));
+    return NULL;
+  }
+
+  /* if the maximum number of clients is reached, raise a temporary error*/
+  if((unicast_vars->max_clients>0)&&(unicast_vars->client_number>=unicast_vars->max_clients))
+  {
+    int iRet;
+    //log_message( log_module, MSG_INFO,"Too many clients connected, we raise an error to  %s\n", inet_aton(tempSocketAddrIn.sin6_addr));
+    iRet=write(tempSocket,HTTP_503_REPLY, strlen(HTTP_503_REPLY)); //iRet is to make the copiler happy we will close the connection anyways
+    close(tempSocket);
+    return NULL;
+  }
+
+  tempClient=unicast_add_client6(unicast_vars, tempSocketAddrIn, tempSocket);
   if( tempClient == NULL)
   {
     //We cannot create the client, we close the socket cleanly

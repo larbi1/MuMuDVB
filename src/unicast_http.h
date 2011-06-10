@@ -96,6 +96,8 @@ typedef struct unicast_client_t{
   /**HTTP socket*/
   struct sockaddr_in SocketAddr;
   /**HTTP socket*/
+  struct sockaddr_in6 SocketAddr6;
+  /**HTTP socket*/
   int Socket;
   /**Reception buffer*/
   char *buffer;
@@ -149,8 +151,12 @@ typedef struct unicast_fd_info_t{
 typedef struct unicast_parameters_t{
   /** Do we activate unicast ?*/
   int unicast;
+  /** Do we activate IPv6 unicast ?*/
+  int unicast6;
   /**The "HTTP" ip address*/
   char ipOut[20];
+  /**The "HTTP" ipv6 address*/
+  char ip6Out[IPV6_CHAR_LEN];
   /** The "HTTP" port*/
   int portOut;
   /** The "HTTP" port string version before parsing*/
@@ -159,6 +165,10 @@ typedef struct unicast_parameters_t{
   struct sockaddr_in sIn;
   /**  The HTTP input socket*/
   int socketIn;
+  /** The HTTP input socket 6*/
+  struct sockaddr_in6 sIn6;
+  /**  The HTTP input socket 6*/
+  int socketIn6;
   /** The clients, contains all the clients, associated to a channel or not*/
   unicast_client_t *clients;
   /** The number of connected clients*/

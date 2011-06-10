@@ -159,6 +159,107 @@ unicast_client_t *unicast_add_client(unicast_parameters_t *unicast_vars, struct 
 }
 
 
+/** @brief Add a IPv6 client to the chained list of clients
+* Will allocate the memory and fill the structure
+*
+* @param unicast_vars the unicast parameters
+* @param SocketAddr6 The socket address
+* @param Socket The socket number
+*/
+unicast_client_t *unicast_add_client6(unicast_parameters_t *unicast_vars, struct sockaddr_in6 SocketAddr6, int Socket)
+{
+
+  unicast_client_t *client;
+  unicast_client_t *prev_client;
+  log_message( log_module, MSG_FLOOD,"We create a client associated with the socket %d\n",Socket);
+  //We allocate a new client
+  if(unicast_vars->clients==NULL)
+  {
+    log_message( log_module, MSG_FLOOD,"first client\n");
+    client=unicast_vars->clients=malloc(sizeof(unicast_client_t));
+    prev_client=NULL;
+  }
+  else
+  {
+    log_message( log_module, MSG_FLOOD,"there is already clients\n");
+    client=unicast_vars->clients;
+    while(client->next!=NULL)
+      client=client->next;
+    client->next=malloc(sizeof(unicast_client_t));
+    prev_client=client;
+    client=client->next;
+  }
+  if(client==NULL)
+  {
+    log_message( log_module, MSG_ERROR,"Problem with malloc : %s file : %s line %d\n",strerror(errno),__FILE__,__LINE__);
+    close(Socket);
+    return NULL;
+  }
+
+
+  // Disable the Nagle (TCP No Delay) algorithm
+  int iRet;
+  int on = 1;
+  iRet=setsockopt(Socket, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on));
+  if (iRet < 0)
+  {
+    log_message( log_module,  MSG_WARN,"setsockopt TCP_NODELAY failed : %s\n", strerror(errno));
+  }
+
+  int buffer_size;
+  socklen_t size;
+  size=sizeof(buffer_size);
+  iRet=getsockopt( Socket, SOL_SOCKET, SO_SNDBUF, &buffer_size, &size);
+  if (iRet < 0)
+  {
+    log_message( log_module,  MSG_WARN,"get SO_SNDBUF failed : %s\n", strerror(errno));
+  }
+  else
+    log_message( log_module,  MSG_FLOOD,"Actual SO_SNDBUF size : %d\n", buffer_size);
+  if(unicast_vars->socket_sendbuf_size)
+  {
+    buffer_size = unicast_vars->socket_sendbuf_size;
+    iRet=setsockopt(Socket, SOL_SOCKET, SO_SNDBUF, &buffer_size, sizeof(buffer_size));
+    if (iRet < 0)
+    {
+      log_message( log_module,  MSG_WARN,"setsockopt SO_SNDBUF failed : %s\n", strerror(errno));
+    }
+    else
+    {
+      size=sizeof(buffer_size);
+      iRet=getsockopt( Socket, SOL_SOCKET, SO_SNDBUF, &buffer_size, &size);
+      if (iRet < 0)
+        log_message( log_module,  MSG_WARN,"2nd get SO_SNDBUF failed : %s\n", strerror(errno));
+      else
+        log_message( log_module,  MSG_DETAIL,"New SO_SNDBUF size : %d\n", buffer_size);
+    }
+  }
+
+  //We fill the client data
+  client->SocketAddr6=SocketAddr6;
+  client->Socket=Socket;
+  client->buffer=NULL;
+  client->buffersize=0;
+  client->bufferpos=0;
+  client->channel=-1;
+  client->askedChannel=-1;
+  client->consecutive_errors=0;
+  client->next=NULL;
+  client->prev=prev_client;
+  client->chan_next=NULL;
+  client->chan_prev=NULL;
+  //We init the queue
+  client->queue.data_bytes_in_queue=0;
+  client->queue.packets_in_queue=0;
+  client->queue.first=NULL;
+  client->queue.last=NULL;
+
+  unicast_vars->client_number++;
+
+  return client;
+}
+
+
 
 /** @brief Delete a client to the chained list of clients and in the associated channel
 * This function close the socket of the client

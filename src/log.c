@@ -347,7 +347,7 @@ void log_message( char* log_module, int type,
  * @param number_of_channels the number of channels
  * @param channels : the channels array
  */
-void log_streamed_channels(char *log_module,int number_of_channels, mumudvb_channel_t *channels, int multicast_ipv4,int multicast_ipv6, int unicast, int unicast_master_port, char *unicastipOut)
+void log_streamed_channels(char *log_module,int number_of_channels, mumudvb_channel_t *channels, int multicast_ipv4,int multicast_ipv6, int unicast, int unicast6, int unicast_master_port, char *unicastipOut, char *unicastipOut6)
 {
   int curr_channel;
   int curr_pid;
@@ -370,6 +370,12 @@ void log_streamed_channels(char *log_module,int number_of_channels, mumudvb_chan
       log_message( log_module,  MSG_INFO, "\tUnicast : Channel accessible via the master connection, %s:%d\n",unicastipOut, unicast_master_port);
       if(channels[curr_channel].unicast_port)
         log_message( log_module,  MSG_INFO, "\tUnicast : Channel accessible directly via %s:%d\n",unicastipOut, channels[curr_channel].unicast_port);
+    }
+    if(unicast6)
+    {
+      log_message( log_module,  MSG_INFO, "\tUnicast : Channel accessible via the master connection, [%s]:%d\n",unicastipOut6, unicast_master_port);
+      if(channels[curr_channel].unicast_port)
+        log_message( log_module,  MSG_INFO, "\tUnicast : Channel accessible directly via [%s]:%d\n",unicastipOut, channels[curr_channel].unicast_port);
     }
     mumu_string_t string=EMPTY_STRING;
     char lang[5];

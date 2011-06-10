@@ -273,7 +273,9 @@ int
   //Parameters for HTTP unicast
   unicast_parameters_t unicast_vars={
     .unicast=0,
+    .unicast6=0,
     .ipOut="0.0.0.0",
+    .ip6Out="[::]",
     .portOut=4242,
     .portOut_str=NULL,
     .consecutive_errors_timeout=UNICAST_CONSECUTIVE_ERROR_TIMEOUT,
@@ -1413,9 +1415,24 @@ int
     {
       log_message("Unicast: ", MSG_INFO,"We open the channel %d http socket address %s:%d\n",curr_channel, unicast_vars.ipOut, chan_and_pids.channels[curr_channel].unicast_port);
       unicast_create_listening_socket(UNICAST_LISTEN_CHANNEL, curr_channel, unicast_vars.ipOut,chan_and_pids.channels[curr_channel].unicast_port , &chan_and_pids.channels[curr_channel].sIn, &chan_and_pids.channels[curr_channel].socketIn, &fds, &unicast_vars);
+
     }
   }
 
+  //We open the socket for the http unicast if needed and we update the poll structure
+  if(unicast_vars.unicast6)
+  {
+    log_message("Unicast: ", MSG_INFO,"We open the Master http IPv6 socket for address [%s]:%d\n",unicast_vars.ip6Out, unicast_vars.portOut);
+    unicast_create_listening_socket6(UNICAST_MASTER, -1, unicast_vars.ip6Out, unicast_vars.portOut, &unicast_vars.sIn6, &unicast_vars.socketIn, &fds, &unicast_vars);
+    /** open the unicast listening connections fo the channels */
+    for (curr_channel = 0; curr_channel < chan_and_pids.number_of_channels; curr_channel++)
+      if(chan_and_pids.channels[curr_channel].unicast_port)
+    {
+      log_message("Unicast: ", MSG_INFO,"We open the channel %d http socket address %s:%d\n",curr_channel, unicast_vars.ipOut, chan_and_pids.channels[curr_channel].unicast_port);
+      unicast_create_listening_socket6(UNICAST_LISTEN_CHANNEL, curr_channel, unicast_vars.ip6Out,chan_and_pids.channels[curr_channel].unicast_port , &chan_and_pids.channels[curr_channel].sIn6, &chan_and_pids.channels[curr_channel].socketIn, &fds, &unicast_vars);
+
+    }
+  }
 
   /*****************************************************/
   // init sap
@@ -1439,8 +1456,10 @@ int
 			  multicast_vars.multicast_ipv4,
 			  multicast_vars.multicast_ipv6,
 			  unicast_vars.unicast,
+			  unicast_vars.unicast6,
 			  unicast_vars.portOut,
-			  unicast_vars.ipOut);
+			  unicast_vars.ipOut,
+			  unicast_vars.ip6Out);
 
   if(autoconf_vars.autoconfiguration)
     log_message("Autoconf: ",MSG_INFO,"Autoconfiguration Start\n");
