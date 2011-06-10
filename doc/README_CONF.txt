@@ -276,8 +276,10 @@ HTTP unicast parameters
 [width="80%",cols="2,8,1,5",options="header"]
 |==================================================================================================================
 |Parameter name |Description | Default value |Comments
-|unicast |Set this option to one to activate HTTP unicast | 0  |   see the README for more details
-|ip_http |the listening ip for http unicast, if you want to listen to all interfaces put 0.0.0.0 | 0.0.0.0  |  see the README for more details
+|unicast |Set this option to one to activate HTTP IPv4 unicast | 0  |   see the README for more details
+|unicast6 |Set this option to one to activate HTTP IPv6 unicast | 0  |   see the README for more details
+|ip_http |the listening ip for http IPv4 unicast, if you want to listen to all interfaces put 0.0.0.0 | 0.0.0.0  |  see the README for more details
+|ip_http6 |the listening ip for http IPv6 unicast, Ex : 2a01:e35:8bc1:c731::10 | ::  |  see the README for more details
 |port_http | The listening port for http unicast | 4242 |  You can use mathematical expressions containing integers, * and +. You can use the %card, `%tuner` and %server template. Ex `port_http=2000+%card*100`
 |unicast_consecutive_errors_timeout | The timeout for disconnecting a client wich is not responding | 5 | A client will be disconnected if no data have been sucessfully sent during this interval. A value of 0 desactivate the timeout (unadvised).
 |unicast_max_clients | The limit on the number of connected clients | 0 | 0 : no limit.

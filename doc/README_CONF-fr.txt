@@ -285,8 +285,10 @@ Paramètres concernant l'unicast HTTP
 [width="80%",cols="2,8,1,5",options="header"]
 |==================================================================================================================
 |Nom |Description | Valeur par défaut | Commentaires
-|unicast | Utilisez cette option pour activer l'unicast HTTP | 0  |   se référer au README pour plus de détails
-|ip_http | L'ip d'écoute du serveur unicast. Si vous voulez écouter sur toutes les interfaces mettez 0.0.0.0 | 0.0.0.0  |    se référer au README pour plus de détails.
+|unicast | Utilisez cette option pour activer l'unicast HTTP IPv4 | 0  |   se référer au README pour plus de détails
+|unicast6 | Utilisez cette option pour activer l'unicast HTTP IPv6 | 0  |   se référer au README pour plus de détails
+|ip_http | L'ipv4 d'écoute du serveur unicast. Si vous voulez écouter sur toutes les interfaces mettez 0.0.0.0 | 0.0.0.0  |    se référer au README pour plus de détails.
+|ip_http6 | L'ipv6 d'écoute du serveur unicast. Exemple 2a01:e35:8bc1:c731::10 | ::  |    se référer au README pour plus de détails.
 |port_http | Le port d'écoute pour l'unicast HTTP | 4242 |  Vous pouvez utiliser des expressions mathématiques contenant des entiers, * et +. Vous pouvez utiliser les mots clefs `%card`, `%tuner` et `%server`. Ex `port_http=2000+%card*100`
 |unicast_consecutive_errors_timeout | Le délai pour déconnecter un client qui ne réponds pas | 5 |  Un client sera déconnecté si aucune donnée n'a été envoyée avec succès durant cet intervalle. Une valeur 0 désactive cette fonctionnalité (déconseillé).
 |unicast_max_clients | Limite sur le nombre de clients simultanés | 0 |  0 : pas de limite.
