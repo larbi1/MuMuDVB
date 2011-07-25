@@ -1,0 +1,11 @@
+--- libubigen.c.old	2011-07-19 21:58:19.329380932 +0200
++++ libubigen.c	2011-07-19 21:59:52.357380950 +0200
+@@ -201,7 +201,7 @@
+ 	u->v->lnum = cpu_to_be32(u->blks_written);
+ 
+ 	if (action & MARK_AS_UPDATE) {
+-		u->v->copy_flag = (u->v->copy_flag)++;
++		(u->v->copy_flag)++;
+ 	}
+ 
+ 	write_vid_hdr(u, action);
