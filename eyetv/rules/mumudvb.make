@@ -87,12 +87,14 @@ $(STATEDIR)/mumudvb.targetinstall:
 	@$(call install_fixup, mumudvb,DEPENDS,)
 	@$(call install_fixup, mumudvb,DESCRIPTION,missing)
 
+	@$(call install copy, mumudvb,0,0,0755,/var/run/mumudvb)
 	@$(call install_copy, mumudvb, 0, 0, 0755, $(MUMUDVB_DIR)/src/mumudvb, /usr/bin/mumudvb)
+	@$(call install_link, mumudvb, ../init.d/mumudvb, /etc/rc.d/S99mumudvb)
 
 	@$(call install_finish, mumudvb)
 
 	@$(call touch)
-
+	
 # ----------------------------------------------------------------------------
 # Clean
 # ----------------------------------------------------------------------------
