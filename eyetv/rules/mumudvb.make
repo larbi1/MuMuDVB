@@ -102,5 +102,8 @@ $(STATEDIR)/mumudvb.targetinstall:
 #$(STATEDIR)/mumudvb.clean:
 #	@$(call targetinfo)
 #	@$(call clean_pkg, MUMUDVB)
+rm -rf $(STATEDIR)/mumudvb.*
+	rm -rf $(PKGDIR)/mumudvb_*
+	rm -rf $(MUMUDVB_DIR)
 
 # vim: syntax=make
