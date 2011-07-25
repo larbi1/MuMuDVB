@@ -1,0 +1,7 @@
+## SECTION=fixme
+
+config MUMUDVB
+	tristate
+	prompt "mumudvb"
+	help
+	  FIXME
