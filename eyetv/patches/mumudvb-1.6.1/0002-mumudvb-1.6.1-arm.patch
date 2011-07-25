@@ -1,0 +1,30 @@
+diff -ur mumudvb-1.6.1/src/Makefile.am.old mumudvb-1.6.1/src/Makefile.am
+--- mumudvb-1.6.1/src/Makefile.am.old	2011-06-10 16:19:49.000000000 +0200
++++ mumudvb-1.6.1/src/Makefile.am	2011-07-20 14:35:12.000000000 +0200
+@@ -2,6 +2,26 @@
+ AM_CFLAGS = -Wall -Wextra
+ AM_LDFLAGS =
+ 
++#CC_OPTIONS = -std=c99 -D_POSIX_SOURCE -ggdb -ffunction-sections -fdata-sections -DTOMA -O2 -Wno-multichar -D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=199309L -Wcast-align -U_FORTIFY_SOURCE
++#CXX_OPTIONS = -D_POSIX_SOURCE -DTOMA -O2 -ffunction-sections -fdata-sections -fno-exceptions -Wno-multichar -D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=199309L -Wcast-align -U_FORTIFY_SOURCE
++#LNK_OPTIONS = -lrt -lc -s -Wl,--gc-sections
++AR_OPTIONS = -r
++
++TOOLCHAIN = /opt/OSELAS.Toolchain-1.99.3/arm-v5te-linux-gnueabi/gcc-4.3.2-glibc-2.8-binutils-2.18-kernel-2.6.27-sanitized
++BIN_PREFIX = arm-v5te-linux-gnueabi-
++BUILDFOLDER = ./cbuild-arm
++TOMAFOLDER = $(TOMA_PTX)/platform-elgato-toma/sysroot-target
++LNK_OPTIONS = -B$(TOMAFOLDER)/usr/lib -lrt -lc -s -Wl,--gc-sections
++CC_OPTIONS = -std=c99 -D_POSIX_SOURCE -ggdb -ffunction-sections -fdata-sections -DTOMA -O2 -Wno-multichar -D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=199309L -Wcast-align -U_FORTIFY_SOURCE -I$(TOMAFOLDER)/kernel-headers/include -I$(TOMAFOLDER)/usr/include
++CXX_OPTIONS = -D_POSIX_SOURCE -DTOMA -O2 -ffunction-sections -fdata-sections -fno-exceptions -Wno-multichar -D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=199309L -Wcast-align -U_FORTIFY_SOURCE -I$(TOMAFOLDER)/kernel-headers/include -I$(TOMAFOLDER)/usr/include
++
++TOOLCHAIN_BIN = $(TOOLCHAIN)/bin
++
++CC = $(TOOLCHAIN_BIN)/$(BIN_PREFIX)gcc
++CXX = $(TOOLCHAIN_BIN)/$(BIN_PREFIX)g++
++AR = $(TOOLCHAIN_BIN)/$(BIN_PREFIX)ar
++RANLIB = $(TOOLCHAIN_BIN)/$(BIN_PREFIX)ranlib
++
+ 
+ check_PROGRAMS = mumudvb_test
+ mumudvb_test_SOURCES = mumudvb_test.c autoconf.c crc32.c dvb.h log.c log.h multicast.c mumudvb.h network.h rewrite.h \

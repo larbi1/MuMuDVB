@@ -1,0 +1,97 @@
+diff -ur mumudvb-1.6.1/src/sdt_rewrite.orig.c mumudvb-1.6.1/src/sdt_rewrite.c
+--- mumudvb-1.6.1/src/sdt_rewrite.orig.c	2011-07-20 14:40:33.000000000 +0200
++++ mumudvb-1.6.1/src/sdt_rewrite.c	2011-07-20 14:46:02.749725975 +0200
+@@ -111,7 +111,8 @@
+    */
+   int allowed_descriptors[]={0x47, 0x48, 0x50, 0x51, 0x53, 0x5D, 0x6E};
+   int num_allowed=sizeof(allowed_descriptors)/sizeof(int);
+-  for(int i=0;i<num_allowed;i++)
++  int i;
++  for(i=0;i<num_allowed;i++)
+     if(descriptor_tag == allowed_descriptors[i])
+       return 1;
+ 
+diff -ur mumudvb-1.6.1/src/unicast_http.orig.c mumudvb-1.6.1/src/unicast_http.c
+--- mumudvb-1.6.1/src/unicast_http.orig.c	2011-07-20 12:43:56.000000000 +0200
++++ mumudvb-1.6.1/src/unicast_http.c	2011-07-20 13:42:40.365483787 +0200
+@@ -622,7 +622,8 @@
+           {
+             int requested_sid;
+             requested_sid=atoi(substring);
+-            for(int current_channel=0; current_channel<number_of_channels;current_channel++)
++            int current_channel;
++            for(current_channel=0; current_channel<number_of_channels;current_channel++)
+             {
+               if(channels[current_channel].service_id == requested_sid)
+                 requested_channel=current_channel+1;
+@@ -969,7 +970,8 @@
+ 
+   unicast_reply_write(reply, HTTP_CHANNELS_REPLY_START);
+ 
+-  for (int curr_channel = 0; curr_channel < number_of_channels; curr_channel++)
++  int curr_channel;
++  for (curr_channel = 0; curr_channel < number_of_channels; curr_channel++)
+     if (channels[curr_channel].streamed_channel)
+     {
+       if(host)
+@@ -1154,7 +1156,8 @@
+                         service_type_to_str(channels[curr_channel].channel_type),
+                         channels[curr_channel].num_pids);
+                         unicast_reply_write(reply, "\"pids\":[");
+-                        for(int i=0;i<channels[curr_channel].num_pids;i++)
++			int i;                        
++			for(i=0;i<channels[curr_channel].num_pids;i++)
+                           unicast_reply_write(reply, "{\"number\":%d, \"type\":\"%s\"},\n", channels[curr_channel].pids[i], pid_type_to_str(channels[curr_channel].pids_type[i]));
+                         reply->used_body -= 2; // dirty hack to erase the last comma
+                         unicast_reply_write(reply, "]");
+@@ -1374,12 +1377,13 @@
+     unicast_reply_write(reply, "\t\t<pmt_pid>%d</pmt_pid>\n",channels[curr_channel].pmt_pid);
+     unicast_reply_write(reply, "\t\t<unicast_port>%d</unicast_port>\n",channels[curr_channel].unicast_port);
+     unicast_reply_write(reply, "\t\t<ca_sys>\n");
+-    for(int i=0;i<32;i++)
++    int i;
++    for(i=0;i<32;i++)
+       if(channels[curr_channel].ca_sys_id[i]!=0)
+         unicast_reply_write(reply, "\t\t\t<ca num=\"%d\"><![CDATA[%s]]></ca>\n",channels[curr_channel].ca_sys_id[i],ca_sys_id_to_str(channels[curr_channel].ca_sys_id[i]));
+     unicast_reply_write(reply, "\t\t</ca_sys>\n");
+     unicast_reply_write(reply, "\t\t<pids>\n");
+-    for(int i=0;i<channels[curr_channel].num_pids;i++)
++    for(i=0;i<channels[curr_channel].num_pids;i++)
+       unicast_reply_write(reply, "\t\t\t<pid number=\"%d\" language=\"%s\" scrambled=\"%d\"><![CDATA[%s]]></pid>\n", channels[curr_channel].pids[i], channels[curr_channel].pids_language[i], channels[curr_channel].pids_scrambled[i], pid_type_to_str(channels[curr_channel].pids_type[i]));
+     unicast_reply_write(reply, "\t\t</pids>\n");
+     unicast_reply_write(reply, "\t</channel>\n");
+
+diff -ur mumudvb-1.6.1/src/log.orig.c mumudvb-1.6.1/src/log.c
+--- mumudvb-1.6.1/src/log.orig.c	2011-07-20 12:43:56.000000000 +0200
++++ mumudvb-1.6.1/src/log.c	2011-07-20 13:38:53.155936221 +0200
+@@ -396,7 +396,8 @@
+ 
+   mumu_string_t string=EMPTY_STRING;
+   if((Interrupted=mumu_string_append(&string, "PIDs for channel %d \"%s\" : ",curr_channel, channel->name)))return;
+-  for (int curr_pid = 0; curr_pid < channel->num_pids; curr_pid++)
++  int curr_pid;
++  for (curr_pid = 0; curr_pid < channel->num_pids; curr_pid++)
+   {
+     if((Interrupted=mumu_string_append(&string, " %d",channel->pids[curr_pid])))return;
+   }
+@@ -739,8 +740,8 @@
+   //cf ETR 162 and http://www.dvbservices.com/identifiers/ca_system_id
+ 
+ 
+-
+-  for(int i=0;i<num_casysids;i++)
++  int i;
++  for(i=0;i<num_casysids;i++)
+   {
+     if((casysids[i].end == 0 && casysids[i].beginning == id) || ( casysids[i].beginning <= id && casysids[i].end >= id))
+       return casysids[i].descr;
+@@ -1056,7 +1057,8 @@
+   if((now-show_traffic_time)>=show_traffic_interval)
+     {
+       show_traffic_time=now;
+-      for (int curr_channel = 0; curr_channel < chan_and_pids->number_of_channels; curr_channel++)
++      int curr_channel;
++      for (curr_channel = 0; curr_channel < chan_and_pids->number_of_channels; curr_channel++)
+         {
+           log_message( log_module,  MSG_INFO, "Traffic :  %.2f kb/s \t  for channel \"%s\"\n",
+                        chan_and_pids->channels[curr_channel].traffic*8,
