@@ -1,0 +1,73 @@
+#!/bin/sh
+#
+# Starts MuMuDVB daemons.
+#
+
+start() {
+	echo "Starting MuMuDVB.."
+	TRIES=8
+	while [ $TRIES -gt 0 ]
+	do
+        	if test -c /dev/dvb/adapter0/frontend0
+       		then                                  
+                	echo OK
+                	TRIES=-1
+        	else           
+                	echo "waiting for frontend..."
+                	sleep 1           
+                	TRIES=$((TRIES-1))
+        	fi
+	done
+ 
+	if [ $TRIES -eq 0 ]
+	then
+        	echo "no frontend found!!!"
+	fi
+
+	INDEX=0
+	SUCCESS=1
+	while [ $SUCCESS -eq 1 ]
+	do
+		DEVNAME="/dev/dvb/adapter"$INDEX"/frontend0"
+		if test -e $DEVNAME 
+		then 
+	 		let INDEX=INDEX+1
+			echo "Starting Tuner and Filter "$INDEX
+ 			/usr/bin/mumudvb -c /persistent/card"$INDEX".conf
+ 		else 
+ 			SUCCESS=0
+ 		fi 
+ 	done 
+
+	echo $INDEX" Tuners found."
+
+	echo "Starting MuMuDVB done."
+}
+stop() {
+	echo -n "Stopping MuMuDVB: "
+	killall mumudvb
+
+	echo "OK"
+}
+restart() {
+	stop
+	start
+}
+
+case "$1" in
+ start)
+ 	start
+	;;
+ stop)
+ 	stop
+	;;
+ restart|reload)
+ 	restart
+	;;
+ *)
+	echo $"Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+
