@@ -6,10 +6,10 @@
 
 ROOTFS=root.jffs2
 URL='http://edgedownloads.elgato.com/eyetvdownloads/support/Firmware/EyeTV_Netstream/eyetv_netstream_112_311_update.zip'
-UPDATE='eyetv_netstream_112_311_update.zip'
+ZIP='eyetv_netstream_112_311_update.zip'
 FIRMWARE='eyetv-netstream-1.1.2.update'
 wget $URL
-unzip $UPDATE
+unzip $ZIP
 
 mkdir regular
 mv __MACOSX/eyetv-netstream-1.1.2.update regular/
