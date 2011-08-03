@@ -1,0 +1,13 @@
+#
+# /etc/network/interfaces
+#
+
+# loopback interface
+iface lo inet loopback
+
+# ethernet
+iface eth0 inet static
+address 172.23.199.150
+netmask 255.255.224.0
+gateway 172.23.199.1
+
