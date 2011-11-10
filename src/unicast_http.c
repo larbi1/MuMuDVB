@@ -1339,7 +1339,7 @@ unicast_send_xml_state (int number_of_channels, mumudvb_channel_t *channels, int
 
 
   // Autoconfiguration state
-  if (autoconf_vars->autoconfiguration!=0)
+  if (autoconf_vars->autoconfiguration!=AUTOCONF_MODE_NONE)
     unicast_reply_write(reply, "\t<autoconf_end>%d</autoconf_end>\n",0);
   else
     unicast_reply_write(reply, "\t<autoconf_end>%d</autoconf_end>\n",1);
@@ -1356,6 +1356,10 @@ unicast_send_xml_state (int number_of_channels, mumudvb_channel_t *channels, int
     unicast_reply_write(reply, "\t<cam_menustring><![CDATA[No CAM support]]></cam_menustring>\n");
     unicast_reply_write(reply, "\t<cam_initialized>%d</cam_initialized>\n",0);
   #endif
+
+  // Transport stream ID
+  if (autoconf_vars->autoconfiguration!=AUTOCONF_MODE_NONE)
+    unicast_reply_write(reply, "\t<tsid=\"%d</tsid>\n",autoconf_vars->transport_stream_id);
 
   // Channels list
   int curr_channel;
