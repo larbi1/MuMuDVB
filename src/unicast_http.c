@@ -90,7 +90,9 @@ unicast_send_signal_power_js (int Socket, strength_parameters_t *strengthparams)
 int
 unicast_send_channel_traffic_js (int number_of_channels, mumudvb_channel_t *channels, int Socket);
 int
-unicast_send_xml_state (int number_of_channels, mumudvb_channel_t* channels, int Socket, strength_parameters_t* strengthparams, autoconf_parameters_t* autoconf_vars, void* cam_vars_v);
+unicast_send_xml_state (int Socket, strength_parameters_t *strengthparams, autoconf_parameters_t *autoconf_vars, void *cam_vars_v);
+int
+unicast_send_xml_channels (int number_of_channels, mumudvb_channel_t *channels, int Socket);
 int
 unicast_send_cam_menu (int Socket, void *cam_vars);
 int
@@ -724,7 +726,13 @@ int unicast_handle_message(unicast_parameters_t *unicast_vars, unicast_client_t 
         else if(strstr(client->buffer +pos ,"/monitor/state.xml ")==(client->buffer +pos))
         {
           log_message( log_module, MSG_DETAIL,"HTTP request for XML State\n");
-          unicast_send_xml_state(number_of_channels, channels, client->Socket, strengthparams, autoconf_vars, cam_vars);
+          unicast_send_xml_state(client->Socket, strengthparams, autoconf_vars, cam_vars);
+          return -2; //We close the connection afterwards
+        }
+        else if(strstr(client->buffer +pos ,"/monitor/channels.xml ")==(client->buffer +pos))
+        {
+          log_message( log_module, MSG_DETAIL,"HTTP request for XML Channels\n");
+          unicast_send_xml_channels(number_of_channels, channels, client->Socket);
           return -2; //We close the connection afterwards
         }
         else if(strstr(client->buffer +pos ,"/cam/menu.xml ")==(client->buffer +pos))
@@ -1240,13 +1248,11 @@ unicast_send_channel_traffic_js (int number_of_channels, mumudvb_channel_t *chan
 
 /** @brief Send a full XML state of the mumudvb instance
 *
-* @param number_of_channels the number of channels
-* @param channels the channels array
 * @param Socket the socket on wich the information have to be sent
 * @param fds the frontend device structure
 */
 int
-unicast_send_xml_state (int number_of_channels, mumudvb_channel_t *channels, int Socket, strength_parameters_t *strengthparams, autoconf_parameters_t *autoconf_vars, void *cam_vars_v)
+unicast_send_xml_state (int Socket, strength_parameters_t *strengthparams, autoconf_parameters_t *autoconf_vars, void *cam_vars_v)
 {
   #ifndef ENABLE_CAM_SUPPORT
   (void) cam_vars_v; //to make compiler happy
@@ -1361,6 +1367,60 @@ unicast_send_xml_state (int number_of_channels, mumudvb_channel_t *channels, int
   if (autoconf_vars->autoconfiguration!=AUTOCONF_MODE_NONE)
     unicast_reply_write(reply, "\t<tsid=\"%d</tsid>\n",autoconf_vars->transport_stream_id);
 
+  // Ending XML content
+  unicast_reply_write(reply, "</mumudvb>\n");
+
+  // Cleaning all non acceptable characters for pseudo UTF-8 (in fact, US-ASCII) - Skipping BOM and last zero character
+  unsigned char c;
+  int j;
+  for (j=3; j<reply->used_body; j++)
+  {
+    c=reply->buffer_body[j];
+    if ((c<32 || c>127) && c!=9 && c!=10 && c!=13)
+      reply->buffer_body[j]=32;
+  }
+  unicast_reply_send(reply, Socket, 200, "application/xml; charset=UTF-8");  
+
+  // End of HTTP reply
+  if (0 != unicast_reply_free(reply)) {
+    log_message( log_module, MSG_INFO,"Error when releasing the HTTP reply after sendinf it\n");
+    return -1;
+  }
+  return 0;
+}
+
+
+/** @brief Send a full XML channels list of the mumudvb instance
+*
+* @param number_of_channels the number of channels
+* @param channels the channels array
+* @param Socket the socket on wich the information have to be sent
+*/
+int
+unicast_send_xml_channels (int number_of_channels, mumudvb_channel_t *channels, int Socket)
+{
+  // Prepare the HTTP reply
+  struct unicast_reply* reply = unicast_reply_init();
+  if (NULL == reply) {
+    log_message( log_module, MSG_INFO,"Error when creating the HTTP reply\n");
+    return -1;
+  }
+
+  // UTF-8 Byte Order Mark (BOM)
+  unicast_reply_write(reply, "\xef\xbb\xbf");
+
+  // Date time formatting
+  time_t rawtime;
+  time (&rawtime);
+  char sdatetime[25];
+  snprintf(sdatetime,25,"%s",ctime(&rawtime));
+
+  // XML header
+  unicast_reply_write(reply, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n");
+
+  // Starting XML content
+  unicast_reply_write(reply, "<channels>\n");
+
   // Channels list
   int curr_channel;
   for (curr_channel = 0; curr_channel < number_of_channels; curr_channel++)
@@ -1392,7 +1452,7 @@ unicast_send_xml_state (int number_of_channels, mumudvb_channel_t *channels, int
   }
 
   // Ending XML content
-  unicast_reply_write(reply, "</mumudvb>\n");
+  unicast_reply_write(reply, "</channels>\n");
 
   // Cleaning all non acceptable characters for pseudo UTF-8 (in fact, US-ASCII) - Skipping BOM and last zero character
   unsigned char c;
@@ -1412,6 +1472,8 @@ unicast_send_xml_state (int number_of_channels, mumudvb_channel_t *channels, int
   }
   return 0;
 }
+
+
 
 /** @brief Return the last MMI menu sent by CAM
 *
