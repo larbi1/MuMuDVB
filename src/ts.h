@@ -538,8 +538,104 @@ typedef struct {
 } descr_terr_delivery_t;
 
 
+/** @brief 0x43 satellite_delivery_system_descriptor */
+typedef struct {
+  u_char descriptor_tag                         :8;
+  u_char descriptor_length                      :8;
+  u_char frequency_4                            :8;
+  u_char frequency_3                            :8;
+  u_char frequency_2                            :8;
+  u_char frequency_1                            :8;
+#if BYTE_ORDER == BIG_ENDIAN
+  u_char orbital_position_hi                    :8;
+  u_char orbital_position_lo                    :8;
+  u_char west_east_flag                         :1;
+  u_char polarization	                        :2;
+  u_char roll_off		                :2;
+#else
+  u_char roll_off		                :2;
+  u_char polarization	                        :2;
+  u_char west_east_flag                         :1;
+  u_char orbital_position_lo                    :8;
+  u_char orbital_position_hi                    :8;
+#endif
+#if BYTE_ORDER == BIG_ENDIAN
+  u_char modulation_system                      :1;
+  u_char modulation_type	               	:2; 
+  u_char symbol_rate_3		               	:4;
+  u_char symbol_rate_2		                :8;
+  u_char symbol_rate_1		                :8;
+  u_char FEC_inner			        :8;
+#else
+  u_char FEC_inner			        :8;
+  u_char symbol_rate_1		                :8;
+  u_char symbol_rate_2		                :8;
+  u_char symbol_rate_3		                :4;
+  u_char modulation_type	                :2;
+  u_char modulation_system                      :1;
+#endif
+} descr_sat_delivery_t;
 
 
+/** @brief 0x44 cable_delivery_system_descriptor */
+typedef struct {
+  u_char descriptor_tag                         :8;
+  u_char descriptor_length                      :8;
+  u_char frequency_4                            :8;
+  u_char frequency_3                            :8;
+  u_char frequency_2                            :8;
+  u_char frequency_1                            :8;
+
+#if BYTE_ORDER == BIG_ENDIAN
+  u_char 			               	:12;
+  u_char FEC_outer		                :4;
+  u_char modulation		                :8;
+  u_char symbol_rate_3		               	:4;
+  u_char symbol_rate_2		                :8;
+  u_char symbol_rate_1		                :8;
+  u_char FEC_inner			        :8;
+  u_char FEC_inner			        :4;
+#else
+  u_char FEC_inner			        :4;
+  u_char symbol_rate_1		                :8;
+  u_char symbol_rate_2		                :8;
+  u_char symbol_rate_3		                :4;
+  u_char modulation		                :8;
+  u_char FEC_outer		                :4;
+#endif
+} descr_cabl_delivery_t;
+
+
+/** @brief 0x79 S2_satellite_delivery_system_descriptor */
+typedef struct {
+  u_char descriptor_tag                         :8;
+  u_char descriptor_length                      :8;
+#if BYTE_ORDER == BIG_ENDIAN
+  u_char scrambling_sequence_selector           :1;
+  u_char multiple_input_stream_flag             :1;
+  u_char backwards_compatibility_indicator      :1;
+  u_char                                        :5; //reserved
+#else
+  u_char                                        :5; //reserved
+  u_char backwards_compatibility_indicator      :1;
+  u_char multiple_input_stream_flag             :1;
+  u_char scrambling_sequence_selector           :1;
+#endif
+
+#if BYTE_ORDER == BIG_ENDIAN
+  u_char                                        :6;
+  u_char scrambling_sequence_index_3            :8;
+  u_char scrambling_sequence_index_2            :8;
+  u_char scrambling_sequence_index_1            :2;
+  u_char input_stream_identifier                :8;
+#else
+  u_char                                        :6;
+  u_char input_stream_identifier                :8;
+  u_char scrambling_sequence_index_1            :2;
+  u_char scrambling_sequence_index_2            :8;
+  u_char scrambling_sequence_index_3            :8;
+#endif
+} descr_S2_sat_delivery_t;
 
 
 /***************************************************
