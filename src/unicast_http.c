@@ -1316,7 +1316,11 @@ unicast_send_xml_state (int Socket, strength_parameters_t *strengthparams, autoc
   {
 #if DVB_API_VERSION >= 5
     if (strengthparams->tuneparams->delivery_system==SYS_DVBS2)
-      snprintf(fetype,10,"DVB-S2");  
+      snprintf(fetype,10,"DVB-S2");
+#ifdef SYS_DVBT2
+    else if (strengthparams->tuneparams->delivery_system==SYS_DVBT2)
+      snprintf(fetype,10,"DVB-T2");
+#endif
     else
       snprintf(fetype,10,"DVB-S");  
 #else
