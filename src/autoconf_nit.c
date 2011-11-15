@@ -173,12 +173,12 @@ void parse_nit_ts_descriptor(unsigned char* buf, int ts_descriptors_loop_len, mu
         parse_satellite_delivery_system_descriptor(buf);
       else if(descriptor_tag==0x44)
         parse_cable_delivery_system_descriptor(buf);
-      /*else if(descriptor_tag==0x5A)
-        parse_S2_satellite_delivery_system_descriptor(buf); */
-      else if(descriptor_tag==0x62)
+      else if(descriptor_tag==0x5A)
         parse_terrestrial_delivery_system_descriptor(buf);
-      else if(descriptor_tag==0x79)
+      else if(descriptor_tag==0x62)
         parse_frequency_list_descriptor(buf);
+      /*else if(descriptor_tag==0x79)
+        parse_S2_satellite_delivery_system_descriptor(buf); */
       else
         log_message( log_module, MSG_FLOOD, " --- NIT descriptor --- descriptor_tag == 0x%02x len %d descriptors_loop_len %d ------------\n", descriptor_tag, descriptor_len, descriptors_loop_len);
       buf += descriptor_len;
