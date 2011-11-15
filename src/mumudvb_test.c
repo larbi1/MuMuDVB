@@ -33,8 +33,11 @@ http://mumudvb.braice.net/mumudvb/test/
 #define PRESS_ENTER 1
 
 #define FILES_TEST_READ_SDT_TS "tests/BBC123_pids0_18.dump.ts", "tests/TestDump17.ts"//,"tests/test_autoconf_numericableparis_PAT_SDT.ts","tests/astra_TP_11856.00V_PAT_SDT.ts"
+#define FILES_TEST_READ_NIT_TS "tests/BBC123_pids0_18.dump.ts", "tests/TestDump17.ts"
 #define NUM_READ_SDT 100
+#define NUM_READ_NIT 100
 #define NUM_FILES_TEST_READ_SDT 2
+#define NUM_FILES_TEST_READ_NIT 2
 #define FILES_TEST_READ_RAND "tests/random_1.ts","tests/random_2.ts"
 #define NUM_FILES_TEST_READ_RAND 2
 #define TEST_STRING_COMPUT "2+2*3+100"
@@ -54,11 +57,14 @@ http://mumudvb.braice.net/mumudvb/test/
 #include "autoconf.h"
 #include "rewrite.h"
 
+int priority=0;
+
 //Prototypes
 void autoconf_free_services(mumudvb_service_t *services);
 int autoconf_read_sdt(unsigned char *buf,int len, mumudvb_service_t *services);
 void autoconf_sort_services(mumudvb_service_t *services);
-
+int autoconf_read_nit(autoconf_parameters_t *parameters, mumudvb_channel_t *channels, int number_of_channels);
+void parse_nit_descriptors(unsigned char *buf,int descriptors_loop_len);
 
 //Functions implemented here
 void autoconf_print_services(mumudvb_service_t *services);
@@ -158,13 +164,13 @@ int main(void)
             // Get the PID of the received TS packet
             pid = HILO(((ts_header_t *)ts_packet_raw)->pid);
             if(pid != 17) continue;
-            log_message( log_module, MSG_DEBUG,"New elementary (188bytes TS packet) pid %d continuity_counter %d",
+            log_message( log_module, MSG_INFO,"New elementary (188bytes TS packet) pid %d continuity_counter %d",
                          pid,
                          ((ts_header_t *)ts_packet_raw)->continuity_counter );
             iRet=get_ts_packet(ts_packet_raw, &ts_packet_mumu);
             //If it's the beginning of a new packet we display some information
             if(((ts_header_t *)ts_packet_raw)->payload_unit_start_indicator)
-              log_message(log_module, MSG_FLOOD, "First two bytes of the packet 0x%02x %02x",
+              log_message(log_module, MSG_INFO, "First two bytes of the packet 0x%02x %02x",
                           ts_packet_mumu.data_partial[0],
                           ts_packet_mumu.data_partial[1]);
 
@@ -186,6 +192,75 @@ int main(void)
         autoconf_free_services(services.next);
         fclose(testfile);
 
+      }
+    else
+      log_message( log_module, MSG_INFO,"Test file %s cannot be open : %s\n", files_sdt[i_file],strerror(errno) );
+
+  }
+
+
+  /************************************* Testing the NIT parser *************************************/
+  char *files_nit[NUM_FILES_TEST_READ_NIT]={FILES_TEST_READ_NIT_TS};
+  for(int i_file=0;i_file<NUM_FILES_TEST_READ_NIT;i_file++)
+  {
+    log_message( log_module, MSG_INFO,"===================================================================\n");
+    log_message( log_module, MSG_INFO,"Testing TS read for NIT - test %d on %d file %s\n", i_file+1, NUM_FILES_TEST_READ_NIT , files_sdt[i_file] );
+    press_enter_func(press_enter);
+    FILE *testfile;
+    testfile=fopen (files_nit[i_file], "r");
+    if(testfile!=NULL)
+      {
+        //We read all the packets contained in the file
+        unsigned char ts_packet_raw[TS_PACKET_SIZE];
+        int num_nit_read=0;
+        mumudvb_ts_packet_t ts_packet_mumu;
+        memset(&ts_packet_mumu, 0, sizeof(mumudvb_ts_packet_t));
+
+        mumudvb_service_t services;
+        memset(&services, 0, sizeof(mumudvb_service_t));
+        //Just to make pthread happy
+        pthread_mutex_init(&ts_packet_mumu.packetmutex,NULL);
+        int iRet,pid;
+        log_message( log_module, MSG_INFO,"File opened, reading packets\n" );
+        while(fread(ts_packet_raw,TS_PACKET_SIZE,1, testfile) && num_nit_read<NUM_READ_NIT)
+          {
+            /************ SYNC *************/
+            if(ts_packet_raw[0] != 0x47)
+              {
+                log_message( log_module, MSG_INFO," !!!!!!!!!!!!! Sync error, we search for a new sync byte !!!!!!!!!!!!!!\n");
+                unsigned char sync;
+                //We search the next sync byte
+                while(fread(&sync,1,1, testfile) && sync!=0x47);
+                ts_packet_raw[0]=sync;
+                //We found a "sync byte" we get the rest of the packet
+                if(!fread(ts_packet_raw-1,TS_PACKET_SIZE-1,1, testfile))
+                  continue;
+                else
+                  log_message( log_module, MSG_INFO," sync byte found :) \n");
+              }
+            // Get the PID of the received TS packet
+            pid = HILO(((ts_header_t *)ts_packet_raw)->pid);
+            if(pid != 16) continue;
+            log_message( log_module, MSG_INFO,"New elementary (188bytes TS packet) pid %d continuity_counter %d",
+                         pid,
+                         ((ts_header_t *)ts_packet_raw)->continuity_counter );
+            iRet=get_ts_packet(ts_packet_raw, &ts_packet_mumu);
+            //If it's the beginning of a new packet we display some information
+            if(((ts_header_t *)ts_packet_raw)->payload_unit_start_indicator)
+              log_message(log_module, MSG_INFO, "First two bytes of the packet 0x%02x %02x",
+                          ts_packet_mumu.data_partial[0],
+                          ts_packet_mumu.data_partial[1]);
+
+            if(iRet==1)//packet is parsed
+              {
+                log_message( log_module, MSG_INFO,"New packet -- parsing\n" );
+                num_nit_read++;
+                //autoconf_read_sdt(ts_packet_mumu.data_full,ts_packet_mumu.len_full,&services);
+				parse_nit_descriptors(ts_packet_mumu.data_full,ts_packet_mumu.len_full);
+              }
+          }
+        log_message( log_module, MSG_INFO,"===================================================================\n");
+        fclose(testfile);
       }
     else
       log_message( log_module, MSG_INFO,"Test file %s cannot be open : %s\n", files_sdt[i_file],strerror(errno) );
@@ -284,7 +359,7 @@ int main(void)
         pid = ((actual_ts_packet[1] & 0x1f) << 8) | (actual_ts_packet[2]);
         packet_count++;
         if(!(packet_count %100))
-          log_message( log_module, MSG_DEBUG,"Packet count %d", packet_count);
+          log_message( log_module, MSG_INFO,"Packet count %d", packet_count);
 
         iret = autoconf_new_packet(pid, actual_ts_packet, &autoconf_vars,  &fds, &chan_and_pids, &tuneparams, &multicast_vars, &unicast_vars, 0);
 
@@ -301,10 +376,10 @@ int main(void)
       {
         // get the pid of the received ts packet
         pid = ((actual_ts_packet[1] & 0x1f) << 8) | (actual_ts_packet[2]);
-        log_message( log_module, MSG_DEBUG,"PID  %d", pid);
+        log_message( log_module, MSG_INFO,"PID  %d", pid);
         packet_count++;
         if(!(packet_count %100))
-          log_message( log_module, MSG_DEBUG,"Packet count %d", packet_count);
+          log_message( log_module, MSG_INFO,"Packet count %d", packet_count);
 
         iret = autoconf_new_packet(pid, actual_ts_packet, &autoconf_vars,  &fds, &chan_and_pids, &tuneparams, &multicast_vars, &unicast_vars, 0);
 
@@ -425,7 +500,7 @@ void autoconf_print_services(mumudvb_service_t *services)
 		   act_service->name);
       log_message( log_module, MSG_INFO,"pmt_pid %d\n",
                    act_service->pmt_pid);
-      display_service_type(act_service->type, MSG_DEBUG,log_module);
+      display_service_type(act_service->type, MSG_INFO,log_module);
       act_service=act_service->next;
     }
 }
