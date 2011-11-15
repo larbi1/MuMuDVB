@@ -52,7 +52,11 @@ void parse_network_name_descriptor(unsigned char *buf);
 void parse_multilingual_network_name_descriptor(unsigned char *buf);
 void parse_lcn_descriptor(unsigned char *buf, mumudvb_channel_t *channels, int number_of_channels);
 void parse_service_list_descriptor_descriptor(unsigned char *buf);
+void parse_satellite_delivery_system_descriptor(unsigned char *buf);
+void parse_cable_delivery_system_descriptor(unsigned char *buf);
 void parse_terrestrial_delivery_system_descriptor(unsigned char *buf);
+void parse_frequency_list_descriptor(unsigned char *buf);
+
 
 /** @brief Read the network information table (cf EN 300 468)
  *
@@ -165,8 +169,16 @@ void parse_nit_ts_descriptor(unsigned char* buf, int ts_descriptors_loop_len, mu
 	parse_lcn_descriptor(buf, channels, number_of_channels);
       else if(descriptor_tag==0x41)
         parse_service_list_descriptor_descriptor(buf);
-      else if(descriptor_tag==0x5A)
+      else if(descriptor_tag==0x43)
+        parse_satellite_delivery_system_descriptor(buf);
+      else if(descriptor_tag==0x44)
+        parse_cable_delivery_system_descriptor(buf);
+      /*else if(descriptor_tag==0x5A)
+        parse_S2_satellite_delivery_system_descriptor(buf); */
+      else if(descriptor_tag==0x62)
         parse_terrestrial_delivery_system_descriptor(buf);
+      else if(descriptor_tag==0x79)
+        parse_frequency_list_descriptor(buf);
       else
         log_message( log_module, MSG_FLOOD, " --- NIT descriptor --- descriptor_tag == 0x%02x len %d descriptors_loop_len %d ------------\n", descriptor_tag, descriptor_len, descriptors_loop_len);
       buf += descriptor_len;
@@ -322,9 +334,139 @@ void parse_service_list_descriptor_descriptor(unsigned char *buf)
     log_message( log_module, MSG_DETAIL, "Service ID : 0x%x service type: 0x%x : %s \n",service_id, service_type, service_type_to_str(service_type));
   }
 }
+/** 
+  */
+/** @brief display the contents of satellite_delivery_system_descriptor
+  * EN 300 468 V1.10.1   6.2.13.2 Satellite delivery system descriptor
+  */
+void parse_satellite_delivery_system_descriptor(unsigned char *buf)
+{
+  descr_sat_delivery_t *descr;
+  descr=(descr_sat_delivery_t *)buf;
+
+  log_message( log_module, MSG_DETAIL, "--- NIT descriptor --- satellite delivery system descriptor\n");
+
+  log_message( log_module, MSG_DETAIL, "Frequency: %ldHz", ((descr->frequency_4<<24)+(descr->frequency_3<<16)+(descr->frequency_2<<8)+descr->frequency_1) *10 );
+  /**  orbital_position: The orbital_position is a 16-bit field giving the 4-bit BCD values specifying 4 characters of the 
+orbital position in degrees where the decimal point occurs after the third character (e.g. 019,2°).
+  */
+  log_message( log_module, MSG_DETAIL, "Orbital position: %d,%d°",descr->orbital_position_hi,descr->orbital_position_lo);
+  
+  if(descr->west_east_flag)
+    log_message( log_module, MSG_DETAIL, "Estern position");
+  else
+    log_message( log_module, MSG_DETAIL, "Western position");
+  switch(descr->polarization)
+  {
+    case 0:
+      log_message( log_module, MSG_DETAIL, "Polarization: linear - horizontal");
+      break;
+    case 1:
+      log_message( log_module, MSG_DETAIL, "Polarization: linear - vertical");
+      break;
+    case 2:
+      log_message( log_module, MSG_DETAIL, "Polarization: circular - left");
+      break;
+    case 3:
+      log_message( log_module, MSG_DETAIL, "Polarization: circular - right");
+      break;
+    default:
+      log_message( log_module, MSG_DETAIL, "Polarization: BUG");
+      break;
+  }
+  if(descr->modulation_system)
+    log_message( log_module, MSG_DETAIL, "Modulation system: DVB-S");
+  else
+    log_message( log_module, MSG_DETAIL, "Modulation system: DVB-S2");
+  if(descr->modulation_system) {
+	switch(descr->roll_off) {
+		case 0:
+		  log_message( log_module, MSG_DETAIL, "Roll-off factor: α = 0,35");
+		  break;
+		case 1:
+		  log_message( log_module, MSG_DETAIL, "Roll-off factor: α = 0,25");
+		  break;
+		case 2:
+		  log_message( log_module, MSG_DETAIL, "Roll-off factor: α = 0,20");
+		  break;
+		case 3:
+		  log_message( log_module, MSG_DETAIL, "Roll-off factor: reserved");
+		  break;
+		default:
+		  log_message( log_module, MSG_DETAIL, "Roll-off factor: BUG");
+		  break;
+	}
+  }
+  switch(descr->modulation_type)
+  {
+    case 0:
+      log_message( log_module, MSG_DETAIL, "Constellation: Auto");
+      break;
+    case 1:
+      log_message( log_module, MSG_DETAIL, "Constellation: QPSK");
+      break;
+    case 2:
+      log_message( log_module, MSG_DETAIL, "Constellation: 8PSK");
+      break;
+    case 3:
+      log_message( log_module, MSG_DETAIL, "Constellation: 16-QAM");
+      break;
+    default:
+      log_message( log_module, MSG_DETAIL, "Constellation: BUG");
+      break;
+  }	
+  log_message( log_module, MSG_DETAIL, "Sybol rate: %ldMsymbol/s", ((descr->symbol_rate_2<<8)+descr->symbol_rate_2) *1000 );	
+  switch(descr->FEC_inner)
+  {
+    case 0:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: not defined");
+      break;
+    case 1:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: 1/2");
+      break;
+    case 2:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: 2/3");
+      break;
+    case 3:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: 3/4");
+      break;
+    case 4:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: 5/6");
+      break;
+    case 5:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: 7/8");
+      break;
+    case 6:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: 8/9");
+      break;
+    case 7:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: 3/5");
+      break;
+    case 8:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: 4/5");
+      break;
+    case 9:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: 9/10");
+      break;
+    case 10:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: Reserved for future use");
+      break;
+    case 11:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: Reserved for future use");
+      break;
+    case 12:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: no convolutional coding");
+      break;
+    default:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: BUG please contact");
+      break;
+  }
+  log_message( log_module, MSG_DETAIL, "--- descriptor done ---\n");
+}
+
 
 /** @brief display the contents of terrestrial_delivery_system_descriptor
-  * EN 300 468    6.2.13.4 Terrestrial delivery system descriptor
+  * EN 300 468 V1.10.1   6.2.13.4 Terrestrial delivery system descriptor
   */
 void parse_terrestrial_delivery_system_descriptor(unsigned char *buf)
 {
@@ -491,22 +633,136 @@ void parse_terrestrial_delivery_system_descriptor(unsigned char *buf)
 
 
 
+/** @brief display the contents of cable_delivery_system_descriptor
+  * EN 300 468 V1.10.1   6.2.13.1 Cable delivery system descriptor
+  */
+void parse_cable_delivery_system_descriptor(unsigned char *buf)
+{
+  descr_cabl_delivery_t *descr;
+  descr=(descr_cabl_delivery_t *)buf;
+
+  log_message( log_module, MSG_DETAIL, "--- NIT descriptor --- cable delivery system descriptor\n");
+
+  log_message( log_module, MSG_DETAIL, "Frequency: %ldHz", ((descr->frequency_4<<24)+(descr->frequency_3<<16)+(descr->frequency_2<<8)+descr->frequency_1) *10 );
+  switch(descr->modulation)
+  {
+    case 0:
+      log_message( log_module, MSG_DETAIL, "Constellation: not defined");
+      break;
+    case 1:
+      log_message( log_module, MSG_DETAIL, "Constellation: 16-QAM");
+      break;
+    case 2:
+      log_message( log_module, MSG_DETAIL, "Constellation: 32-QAM");
+      break;
+    case 3:
+      log_message( log_module, MSG_DETAIL, "Constellation: 64-QAM");
+      break;
+    case 4:
+      log_message( log_module, MSG_DETAIL, "Constellation: 128-QAM");
+      break;
+    case 5:
+      log_message( log_module, MSG_DETAIL, "Constellation: 256-QAM");
+      break;
+    default:
+      log_message( log_module, MSG_DETAIL, "Constellation: BUG");
+      break;
+  }
+  switch(descr->FEC_inner)
+  {
+    case 0:
+      log_message( log_module, MSG_DETAIL, "Outer FEC scheme: not defined");
+      break;
+    case 1:
+      log_message( log_module, MSG_DETAIL, "Outer FEC scheme: no outer FEC coding");
+      break;
+    case 2:
+      log_message( log_module, MSG_DETAIL, "Outer FEC scheme: RS(204/188)");
+      break;
+    default:
+      log_message( log_module, MSG_DETAIL, "Outer FEC scheme: BUG please contact");
+      break;
+  }  
+  switch(descr->FEC_inner)
+  {
+    case 0:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: not defined");
+      break;
+    case 1:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: 1/2");
+      break;
+    case 2:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: 2/3");
+      break;
+    case 3:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: 3/4");
+      break;
+    case 4:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: 5/6");
+      break;
+    case 5:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: 7/8");
+      break;
+    case 6:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: 8/9");
+      break;
+    case 7:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: 3/5");
+      break;
+    case 8:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: 4/5");
+      break;
+    case 9:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: 9/10");
+      break;
+    case 10:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: Reserved for future use");
+      break;
+    case 11:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: Reserved for future use");
+      break;
+    case 12:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: no convolutional coding");
+      break;
+    default:
+      log_message( log_module, MSG_DETAIL, "Inner FEC scheme: BUG please contact");
+      break;
+  }
+  
+  log_message( log_module, MSG_DETAIL, "--- descriptor done ---\n");
+}
 
 
+/** @brief Parse the contents of frequency_list_descriptor
+  * EN 300 468 V1.10.1   6.2.17 Frequency list descriptor
+  * It's used to get the frequency list
+  * @param buf the buffer containing the descriptor
+  */
+void parse_frequency_list_descriptor(unsigned char *buf)
+{
+  /* Frequency list descriptor : 
+	frequency_list_descriptor(){
+		descriptor_tag
+		descriptor_length
+		reserved_future_use
+		coding_type
+		for (i=0;I<N;i++){
+			centre_frequency
+		}
+	}
+   */
+  int length,i;
+  descr_freq_list_t *descr;
+  descr=(descr_freq_list_t *)buf;
 
+  log_message( log_module, MSG_DETAIL, "--- NIT descriptor --- frequency list descriptor\n");
 
+  length=descr->descriptor_length-1;
+  log_message( log_module, MSG_DETAIL, "frequency list: \n");
+  for(i=0;i<length;i+=3)
+  {
+    log_message( log_module,  MSG_DETAIL,"centre_frequency :\n");	//TODO
+  }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  log_message( log_module, MSG_DETAIL, "--- descriptor done ---\n");
+}

@@ -585,7 +585,6 @@ typedef struct {
   u_char frequency_3                            :8;
   u_char frequency_2                            :8;
   u_char frequency_1                            :8;
-
 #if BYTE_ORDER == BIG_ENDIAN
   u_char 			               	:12;
   u_char FEC_outer		                :4;
@@ -621,7 +620,6 @@ typedef struct {
   u_char multiple_input_stream_flag             :1;
   u_char scrambling_sequence_selector           :1;
 #endif
-
 #if BYTE_ORDER == BIG_ENDIAN
   u_char                                        :6;
   u_char scrambling_sequence_index_3            :8;
@@ -636,6 +634,26 @@ typedef struct {
   u_char scrambling_sequence_index_3            :8;
 #endif
 } descr_S2_sat_delivery_t;
+
+
+/** @brief 0x62 frequency_list_descriptor */
+typedef struct {
+  u_char descriptor_tag                         :8;
+  u_char descriptor_length                      :8;
+#if BYTE_ORDER == BIG_ENDIAN
+  u_char                                        :6; //reserved
+  u_char coding_type	                        :2;
+#else
+  u_char coding_type	                        :2;
+  u_char                                        :6; //reserved
+#endif
+/* TODO centre_frequency loop
+for (i=0;I<N;i++){
+centre_frequency
+}
+*/
+} descr_freq_list_t;
+
 
 
 /***************************************************
