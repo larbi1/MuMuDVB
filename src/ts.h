@@ -49,6 +49,9 @@
 #define TS_HEADER_LEN 5
 #define HILO(x) (x##_hi << 8 | x##_lo)
 
+#define BCDHI(x) (((x)>> 4) & 0x0f)
+#define BCDLO(x) ((x) & 0x0f)
+
  /*
  *
  *    ETSI ISO/IEC 13818-1 specifies SI which is referred to as PSI. The PSI
@@ -561,24 +564,15 @@ typedef struct {
   u_char polarization	                        :2;
   u_char west_east_flag                         :1;
 #endif
+  u_char symbol_rate_12		               		:8;
+  u_char symbol_rate_34		               		:8;
+  u_char symbol_rate_56		               		:8;
 #if BYTE_ORDER == BIG_ENDIAN
   u_char symbol_rate_7		               		:4;
-  u_char symbol_rate_6		               		:4;
-  u_char symbol_rate_5		               		:4;
-  u_char symbol_rate_4		               		:4;
-  u_char symbol_rate_3		               		:4;
-  u_char symbol_rate_2		               		:4;
-  u_char symbol_rate_1		               		:4;
   u_char FEC_inner								:4;
 #else
-  u_char symbol_rate_1		               		:4;
-  u_char symbol_rate_3		               		:4;
-  u_char symbol_rate_2		               		:4;
-  u_char symbol_rate_4		               		:4;
-  u_char symbol_rate_5		               		:4;
-  u_char symbol_rate_7		               		:4;
-  u_char symbol_rate_6		               		:4;
   u_char FEC_inner								:4;
+  u_char symbol_rate_7		               		:4;
 #endif
 } descr_sat_delivery_t;
 

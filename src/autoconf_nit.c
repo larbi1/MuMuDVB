@@ -91,7 +91,7 @@ int autoconf_read_nit(autoconf_parameters_t *parameters, mumudvb_channel_t *chan
 
   log_message( log_module, MSG_DEBUG, "-- NIT : Network Information Table --\n");
 
-  log_message( log_module, MSG_DEBUG, "Network id 0x%x\n", HILO(header->network_id));
+  log_message( log_module, MSG_DEBUG, "Network id 0x%02x\n", HILO(header->network_id));
   int network_descriptors_length = HILO(header->network_descriptor_length);
 
   //Loop over different descriptors in the NIT
@@ -214,7 +214,7 @@ void parse_multilingual_network_name_descriptor(unsigned char *buf)
   char language_code[4];
   buf += 2;
 
-  log_message( log_module, MSG_FLOOD, "NIT Multilingual network name descriptor  0x%x len %d\n",descriptor_tag,descriptor_len);
+  log_message( log_module, MSG_FLOOD, "NIT Multilingual network name descriptor  0x%02x len %d\n",descriptor_tag,descriptor_len);
 
   while (descriptor_len > 0)
   {
@@ -331,9 +331,12 @@ void parse_service_list_descriptor_descriptor(unsigned char *buf)
   {
     service_id=(buf[i]<<8)+buf[i+1];;
     service_type=buf[i+2];
-    log_message( log_module, MSG_DETAIL, "Service ID : 0x%x service type: 0x%x : %s \n",service_id, service_type, service_type_to_str(service_type));
+    log_message( log_module, MSG_DETAIL, "Service ID : 0x%02x service type: 0x%02x : %s \n",service_id, service_type, service_type_to_str(service_type));
   }
+  log_message( log_module, MSG_DETAIL, "--- descriptor done ---\n");
 }
+
+
 /** 
   */
 /** @brief display the contents of satellite_delivery_system_descriptor
@@ -346,18 +349,16 @@ void parse_satellite_delivery_system_descriptor(unsigned char *buf)
 
   log_message( log_module, MSG_DETAIL, "--- NIT descriptor --- satellite delivery system descriptor\n");
 
-  log_message( log_module, MSG_DETAIL, "Frequency: %ldHz", ((descr->frequency_4<<24)+(descr->frequency_3<<16)+(descr->frequency_2<<8)+descr->frequency_1) *10 );
-  /**  orbital_position: The orbital_position is a 16-bit field giving the 4-bit BCD values specifying 4 characters of the 
-orbital position in degrees where the decimal point occurs after the third character (e.g. 019,2°).
-  */
-  log_message( log_module, MSG_DETAIL, "Orbital position: %d,%d°",descr->orbital_position_hi,descr->orbital_position_lo);
-  
+  // The frequency is a 32-bit field giving the 4-bit BCD values specifying 8 characters of the frequency value.
+  log_message( log_module, MSG_DETAIL, "Frequency: %x%02x%02x.%02x MHz", descr->frequency_4, descr->frequency_3, descr->frequency_2, descr->frequency_1);
+  log_message( log_module, MSG_DETAIL, "Orbital position: %d%01d,%01d°", descr->orbital_position_hi,(descr->orbital_position_lo>>4)&0x0f, descr->orbital_position_lo&0x0f);
   if(descr->west_east_flag)
     log_message( log_module, MSG_DETAIL, "Estern position");
   else
     log_message( log_module, MSG_DETAIL, "Western position");
   switch(descr->polarization)
   {
+    log_message( log_module, MSG_DETAIL, "Polarization: (0x%02x)", descr->polarization);
     case 0:
       log_message( log_module, MSG_DETAIL, "Polarization: linear - horizontal");
       break;
@@ -375,9 +376,9 @@ orbital position in degrees where the decimal point occurs after the third chara
       break;
   }
   if(descr->modulation_system)
-    log_message( log_module, MSG_DETAIL, "Modulation system: DVB-S");
-  else
     log_message( log_module, MSG_DETAIL, "Modulation system: DVB-S2");
+  else
+    log_message( log_module, MSG_DETAIL, "Modulation system: DVB-S");
   if(descr->modulation_system) {
 	switch(descr->roll_off) {
 		case 0:
@@ -414,8 +415,10 @@ orbital position in degrees where the decimal point occurs after the third chara
     default:
       log_message( log_module, MSG_DETAIL, "Constellation: BUG");
       break;
-  }	
-  log_message( log_module, MSG_DETAIL, "Sybol rate: %ldMsymbol/s", ((descr->symbol_rate_2<<8)+descr->symbol_rate_2) *1000 );	
+  }
+
+  log_message( log_module, MSG_DETAIL, "Symbol rate: %d%d%d,%d%d%d%d Msymbol/s", BCDHI(descr->symbol_rate_12), BCDLO(descr->symbol_rate_12), BCDHI(descr->symbol_rate_34), BCDLO(descr->symbol_rate_34), BCDHI(descr->symbol_rate_56), BCDLO(descr->symbol_rate_56),  BCDLO(descr->symbol_rate_7) );
+
   switch(descr->FEC_inner)
   {
     case 0:
@@ -475,9 +478,9 @@ void parse_terrestrial_delivery_system_descriptor(unsigned char *buf)
 
   log_message( log_module, MSG_DETAIL, "--- NIT descriptor --- terrestrial delivery system descriptor\n");
 
-  log_message( log_module, MSG_DETAIL, "Frequency: %ldHz", ((descr->frequency_4<<24)+(descr->frequency_3<<16)+(descr->frequency_2<<8)+descr->frequency_1) *10 );
+  log_message( log_module, MSG_DETAIL, "Frequency: %ld Hz", ((descr->frequency_4<<24)+(descr->frequency_3<<16)+(descr->frequency_2<<8)+descr->frequency_1) *10 );
   if(descr->bandwidth<=3)
-    log_message( log_module, MSG_DETAIL, "Bandwidth: %dMHz",8-descr->bandwidth);
+    log_message( log_module, MSG_DETAIL, "Bandwidth: %d MHz",8-descr->bandwidth);
   else
     log_message( log_module, MSG_DETAIL, "Bandwidth: Reserved for future use");
   if(descr->priority)
