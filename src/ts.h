@@ -546,33 +546,39 @@ typedef struct {
   u_char frequency_3                            :8;
   u_char frequency_2                            :8;
   u_char frequency_1                            :8;
+  u_char orbital_position_hi                    :8;
+  u_char orbital_position_lo                    :8;
 #if BYTE_ORDER == BIG_ENDIAN
-  u_char orbital_position_hi                    :8;
-  u_char orbital_position_lo                    :8;
   u_char west_east_flag                         :1;
   u_char polarization	                        :2;
-  u_char roll_off		                :2;
+  u_char roll_off		               			:2;
+  u_char modulation_system                      :1;
+  u_char modulation_type	               		:2;
 #else
-  u_char roll_off		                :2;
+  u_char modulation_type	               		:2;
+  u_char modulation_system                      :1;
+  u_char roll_off		               			:2;
   u_char polarization	                        :2;
   u_char west_east_flag                         :1;
-  u_char orbital_position_lo                    :8;
-  u_char orbital_position_hi                    :8;
 #endif
 #if BYTE_ORDER == BIG_ENDIAN
-  u_char modulation_system                      :1;
-  u_char modulation_type	               	:2; 
-  u_char symbol_rate_3		               	:4;
-  u_char symbol_rate_2		                :8;
-  u_char symbol_rate_1		                :8;
-  u_char FEC_inner			        :8;
+  u_char symbol_rate_7		               		:4;
+  u_char symbol_rate_6		               		:4;
+  u_char symbol_rate_5		               		:4;
+  u_char symbol_rate_4		               		:4;
+  u_char symbol_rate_3		               		:4;
+  u_char symbol_rate_2		               		:4;
+  u_char symbol_rate_1		               		:4;
+  u_char FEC_inner								:4;
 #else
-  u_char FEC_inner			        :8;
-  u_char symbol_rate_1		                :8;
-  u_char symbol_rate_2		                :8;
-  u_char symbol_rate_3		                :4;
-  u_char modulation_type	                :2;
-  u_char modulation_system                      :1;
+  u_char symbol_rate_1		               		:4;
+  u_char symbol_rate_3		               		:4;
+  u_char symbol_rate_2		               		:4;
+  u_char symbol_rate_4		               		:4;
+  u_char symbol_rate_5		               		:4;
+  u_char symbol_rate_7		               		:4;
+  u_char symbol_rate_6		               		:4;
+  u_char FEC_inner								:4;
 #endif
 } descr_sat_delivery_t;
 
@@ -586,21 +592,21 @@ typedef struct {
   u_char frequency_2                            :8;
   u_char frequency_1                            :8;
 #if BYTE_ORDER == BIG_ENDIAN
-  u_char 			               	:12;
-  u_char FEC_outer		                :4;
-  u_char modulation		                :8;
-  u_char symbol_rate_3		               	:4;
-  u_char symbol_rate_2		                :8;
-  u_char symbol_rate_1		                :8;
-  u_char FEC_inner			        :8;
-  u_char FEC_inner			        :4;
+  u_char 			               				:12;
+  u_char FEC_outer		               			:4;
+  u_char modulation		                		:8;
+  u_char symbol_rate_3		               		:4;
+  u_char symbol_rate_2		                	:8;
+  u_char symbol_rate_1		                	:8;
+  u_char FEC_inner			        			:8;
+  u_char FEC_inner			        			:4;
 #else
-  u_char FEC_inner			        :4;
-  u_char symbol_rate_1		                :8;
-  u_char symbol_rate_2		                :8;
-  u_char symbol_rate_3		                :4;
-  u_char modulation		                :8;
-  u_char FEC_outer		                :4;
+  u_char FEC_inner			        			:4;
+  u_char symbol_rate_1		                	:8;
+  u_char symbol_rate_2		                	:8;
+  u_char symbol_rate_3		                	:4;
+  u_char modulation		                		:8;
+  u_char FEC_outer		                		:4;
 #endif
 } descr_cabl_delivery_t;
 
@@ -781,7 +787,6 @@ typedef struct {
 /*****************************
  *  End of ATSC PSIP tables  *
  *****************************/
-
 
 /** Enum to tell if the option is set*/
 typedef enum packet_status {
