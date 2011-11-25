@@ -51,6 +51,7 @@ int convert_en399468_string(char *string, int max_len);
 void parse_network_name_descriptor(unsigned char *buf);
 void parse_multilingual_network_name_descriptor(unsigned char *buf);
 void parse_lcn_descriptor(unsigned char *buf, mumudvb_channel_t *channels, int number_of_channels);
+void parse_linkage_descriptor(unsigned char *buf);
 void parse_service_list_descriptor_descriptor(unsigned char *buf);
 void parse_satellite_delivery_system_descriptor(unsigned char *buf);
 void parse_cable_delivery_system_descriptor(unsigned char *buf);
@@ -173,9 +174,12 @@ void parse_nit_ts_descriptor(unsigned char* buf, int ts_descriptors_loop_len, mu
         parse_satellite_delivery_system_descriptor(buf);
       else if(descriptor_tag==0x44)
         parse_cable_delivery_system_descriptor(buf);
+      else if(descriptor_tag==0x4a)
+        parse_linkage_descriptor(buf);
       else if(descriptor_tag==0x5A)
         parse_terrestrial_delivery_system_descriptor(buf);
       else if(descriptor_tag==0x62)
+
         parse_frequency_list_descriptor(buf);
       /*else if(descriptor_tag==0x79)
         parse_S2_satellite_delivery_system_descriptor(buf); */
@@ -263,6 +267,68 @@ void parse_network_name_descriptor(unsigned char *buf)
   log_message( log_module, MSG_DEBUG, "network name : \"%s\"\n", dest);
   free(dest);
 
+}
+
+
+/** @brief Parse the linkage descriptor
+ * 
+ * @param buf the buffer containing the descriptor
+ */
+void parse_linkage_descriptor(unsigned char *buf)
+{
+  /* Linkage descriptor : 
+	linkage_descriptor(){
+		descriptor_tag 			8 		
+		descriptor_length 		8
+		transport_stream_id 	16
+		original_Network_id 	16
+		service_id 				16 
+		linkage_type 			8
+		OUI_data_lengh 			8 
+		OUI 					24 
+		selector_length 		8
+}
+  */
+  unsigned char descriptor_len = buf[1];
+  buf += 2;
+
+  log_message( log_module, MSG_DEBUG, "NIT linkage descriptor \n");
+  log_message( log_module, MSG_FLOOD, "NIT linkage descriptor_len %d\n",descriptor_len);
+
+  /*
+  switch(descr->linkage_type)
+  {
+    log_message( log_module, MSG_DETAIL, "Linkage type: (0x%02x)", descr->linkage_type);
+    case 0:
+      log_message( log_module, MSG_DETAIL, "Linkage type: Reserved");
+      break;
+    case 1:
+      log_message( log_module, MSG_DETAIL, "Linkage type: Information service");
+      break;
+    case 2:
+      log_message( log_module, MSG_DETAIL, "Linkage type: EPG service");
+      break;
+    case 3:
+      log_message( log_module, MSG_DETAIL, "Linkage type: CA replacement service");
+      break;
+    case 4:
+      log_message( log_module, MSG_DETAIL, "Linkage type: TS containing complete Network/Bouquet SI");
+      break;
+    case 9:
+      log_message( log_module, MSG_DETAIL, "Linkage type: System Software Update Service");
+      break;
+    case 10:
+      log_message( log_module, MSG_DETAIL, "Linkage type: TS containing SSU BAT or NIT");
+      break;
+    default:;
+    case 12:
+      log_message( log_module, MSG_DETAIL, "Linkage type: TS containing INT BAT or NIT");
+      break;
+    default:
+      log_message( log_module, MSG_DETAIL, "Linkage type: BUG");
+      break;
+  }
+  */
 }
 
 
