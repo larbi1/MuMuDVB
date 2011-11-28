@@ -57,7 +57,7 @@ void parse_satellite_delivery_system_descriptor(unsigned char *buf);
 void parse_cable_delivery_system_descriptor(unsigned char *buf);
 void parse_terrestrial_delivery_system_descriptor(unsigned char *buf);
 void parse_frequency_list_descriptor(unsigned char *buf);
-
+void parse_HD_simulcast_lcn_descriptor(unsigned char* buf, mumudvb_channel_t* channels, int number_of_channels);
 
 /** @brief Read the network information table (cf EN 300 468)
  *
@@ -179,10 +179,11 @@ void parse_nit_ts_descriptor(unsigned char* buf, int ts_descriptors_loop_len, mu
       else if(descriptor_tag==0x5A)
         parse_terrestrial_delivery_system_descriptor(buf);
       else if(descriptor_tag==0x62)
-
         parse_frequency_list_descriptor(buf);
       /*else if(descriptor_tag==0x79)
         parse_S2_satellite_delivery_system_descriptor(buf); */
+      else if(descriptor_tag==0x88)
+        parse_HD_simulcast_lcn_descriptor(buf, channels, number_of_channels);
       else
         log_message( log_module, MSG_FLOOD, " --- NIT descriptor --- descriptor_tag == 0x%02x len %d descriptors_loop_len %d ------------\n", descriptor_tag, descriptor_len, descriptors_loop_len);
       buf += descriptor_len;
@@ -375,6 +376,50 @@ void parse_lcn_descriptor(unsigned char* buf, mumudvb_channel_t* channels, int n
     }
 }
 
+
+
+/** @brief HD Simulcast LCN Descriptor
+ * It's used in case there are services being broadcasted in SD and HD simultaneously (simulcast)
+ * @param buf the buffer containing the descriptor
+ */
+void parse_HD_simulcast_lcn_descriptor(unsigned char* buf, mumudvb_channel_t* channels, int number_of_channels)
+{
+  /* HD Simulcast LCN descriptor : 
+	descriptor_tag 				8
+	descriptor_length 			8
+	for (i=0 ;i<N ;i++) {
+		service_id 				16
+		visible_service_flag 	1
+		reserved 5 bslbf
+		logical_channel_number 10
+    }
+   */
+  nit_lcn_t *lcn;
+  int descriptor_len = buf[1];
+  buf += 2;
+  int service_id, i_lcn, curr_channel;
+  log_message( log_module, MSG_DEBUG, "NIT  0x88 descriptor HD Simulcast LCN \n");
+  log_message( log_module, MSG_FLOOD, "NIT  0x88 descriptor HD Simulcast LCN descriptor_len %d\n",descriptor_len);
+
+  while (descriptor_len > 0)
+  {
+    lcn=(nit_lcn_t *)buf;
+    buf+=NIT_LCN_LEN;
+    service_id= HILO(lcn->service_id);
+    i_lcn=HILO(lcn->logical_channel_number);
+    log_message( log_module, MSG_DEBUG, "NIT HD Simulcast LCN channel number %d, service id %d visible %d\n",i_lcn ,service_id, lcn->visible_service_flag);
+    for(curr_channel=0;curr_channel<number_of_channels;curr_channel++)
+    {
+      if(channels[curr_channel].service_id==service_id)
+      {
+		log_message( log_module, MSG_DETAIL, "NIT HD Simulcast LCN channel FOUND id %d, LCN %d name \"%s\"\n",service_id,i_lcn, channels[curr_channel].name);
+		channels[curr_channel].logical_channel_number=i_lcn;
+       }
+     }
+     descriptor_len -= NIT_LCN_LEN;
+     }
+
+ }
 
 
 
