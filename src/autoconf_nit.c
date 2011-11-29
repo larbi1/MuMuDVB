@@ -287,49 +287,53 @@ void parse_linkage_descriptor(unsigned char *buf)
 		linkage_type 			8
 		OUI_data_lengh 			8 
 		OUI 					24 
-		selector_length 		8
-}
-  */
-  unsigned char descriptor_len = buf[1];
-  buf += 2;
+ 		selector_length 		8
+ }
+   */
+  nit_linkage_t *linkage;
+  linkage=(nit_linkage_t *)buf;
+ 
+  int ts_id, network_id, service_id;
 
-  log_message( log_module, MSG_DEBUG, "NIT linkage descriptor \n");
-  log_message( log_module, MSG_FLOOD, "NIT linkage descriptor_len %d\n",descriptor_len);
-
-  /*
-  switch(descr->linkage_type)
+  log_message( log_module, MSG_DEBUG, "NIT (0x4a) linkage descriptor \n");
+  ts_id= HILO(linkage->transport_stream_id);
+  log_message( log_module, MSG_DETAIL, "Linkage transport stream ID: 0x%02x (%d)\n", ts_id, ts_id);
+  network_id= HILO(linkage->original_network_id);
+  log_message( log_module, MSG_DETAIL, "Linkage original network ID: 0x%02x (%d)\n",network_id, network_id);
+  service_id= HILO(linkage->service_id);
+  log_message( log_module, MSG_DETAIL, "Linkage service ID : 0x%02x (%d)\n", service_id, service_id);
+  switch(linkage->linkage_type)
   {
-    log_message( log_module, MSG_DETAIL, "Linkage type: (0x%02x)", descr->linkage_type);
-    case 0:
-      log_message( log_module, MSG_DETAIL, "Linkage type: Reserved");
-      break;
-    case 1:
-      log_message( log_module, MSG_DETAIL, "Linkage type: Information service");
-      break;
-    case 2:
-      log_message( log_module, MSG_DETAIL, "Linkage type: EPG service");
-      break;
-    case 3:
-      log_message( log_module, MSG_DETAIL, "Linkage type: CA replacement service");
-      break;
-    case 4:
-      log_message( log_module, MSG_DETAIL, "Linkage type: TS containing complete Network/Bouquet SI");
-      break;
-    case 9:
-      log_message( log_module, MSG_DETAIL, "Linkage type: System Software Update Service");
-      break;
-    case 10:
-      log_message( log_module, MSG_DETAIL, "Linkage type: TS containing SSU BAT or NIT");
-      break;
-    default:;
-    case 12:
-      log_message( log_module, MSG_DETAIL, "Linkage type: TS containing INT BAT or NIT");
-      break;
-    default:
-      log_message( log_module, MSG_DETAIL, "Linkage type: BUG");
-      break;
+	log_message( log_module, MSG_DETAIL, "Linkage type: (0x%02x)", linkage->linkage_type);
+	case 0:
+	  log_message( log_module, MSG_DETAIL, "Linkage type: Reserved");
+	  break;
+	case 1:
+	  log_message( log_module, MSG_DETAIL, "Linkage type: Information service");
+	  break;
+	case 2:
+	  log_message( log_module, MSG_DETAIL, "Linkage type: EPG service");
+	  break;
+	case 3:
+	  log_message( log_module, MSG_DETAIL, "Linkage type: CA replacement service");
+	  break;
+	case 4:
+	  log_message( log_module, MSG_DETAIL, "Linkage type: TS containing complete Network/Bouquet SI");
+	  break;
+	case 9:
+	  log_message( log_module, MSG_DETAIL, "Linkage type: System Software Update Service");
+	  break;
+	case 10:
+	  log_message( log_module, MSG_DETAIL, "Linkage type: TS containing SSU BAT or NIT");
+	  break;
+	case 12:
+	  log_message( log_module, MSG_DETAIL, "Linkage type: TS containing INT BAT or NIT");
+	  break;
+	default:
+	  log_message( log_module, MSG_DETAIL, "Linkage type: BUG");
+	  break;
   }
-  */
+  log_message( log_module, MSG_DETAIL, "--- descriptor done ---\n");
 }
 
 

@@ -459,6 +459,24 @@ typedef struct {
    u_char logical_channel_number_lo              :8;
 }nit_lcn_t;
 
+//  linkage_descriptor
+typedef struct {
+  u_char descriptor_tag						 	:8; 		
+  u_char descriptor_length			          	:8;
+  u_char transport_stream_id_hi                 :8;
+  u_char transport_stream_id_lo                 :8;
+  u_char original_network_id_hi                 :8;
+  u_char original_network_id_lo                 :8;
+  u_char service_id_hi                          :8;
+  u_char service_id_lo                          :8;
+  u_char linkage_type 							:8;
+  u_char OUI_data_lengh 						:8; 
+  u_char OUI_3									:8;
+  u_char OUI_2									:8;
+  u_char OUI_1									:8;
+  u_char selector_length						:8;
+}nit_linkage_t;
+
 
 /** length of the common tables header */
 #define TABLE_LEN 8
