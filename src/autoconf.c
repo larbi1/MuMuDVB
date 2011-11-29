@@ -688,6 +688,10 @@ int autoconf_services_to_channels(autoconf_parameters_t parameters, mumudvb_chan
           char number[10];
           char ip[80];
           int len=80;
+          int num[4];
+          int n=0;
+          char * pch;
+      
           if(strlen(parameters.autoconf_multicast_port))
           {
             strcpy(tempstring,parameters.autoconf_multicast_port);
@@ -716,7 +720,17 @@ int autoconf_services_to_channels(autoconf_parameters_t parameters, mumudvb_chan
 	      mumu_string_replace(ip,&len,0,"%tuner",number);
 	      sprintf(number,"%d",server_id);
 	      mumu_string_replace(ip,&len,0,"%server",number);
-	      strcpy(channels[channel_number].ip4Out,ip);
+		  // Compute the string, ex "239.255.130+0*10+2.1"
+	      log_message( log_module, MSG_DEBUG,"Splitting string \"%s\" into tokens:\n",ip);
+		  pch = strtok (ip,".");
+		  while (pch != NULL)
+		  {
+			num[n]=string_comput(pch);
+			pch = strtok (NULL, ".");
+			n++;
+		  }
+		  sprintf(ip,"%3d.%3d.%d.%d",num[0],num[1],num[2],num[3]);
+		  strcpy(channels[channel_number].ip4Out,ip);
 	      log_message( log_module, MSG_DEBUG,"Channel IPv4 : \"%s\" port : %d\n",channels[channel_number].ip4Out,channels[channel_number].portOut);
 	    }
 	  if(multicast_vars->multicast_ipv6)
