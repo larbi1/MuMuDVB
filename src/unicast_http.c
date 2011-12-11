@@ -1369,7 +1369,7 @@ unicast_send_xml_state (int Socket, strength_parameters_t *strengthparams, autoc
 
   // Transport stream ID
   if (autoconf_vars->autoconfiguration!=AUTOCONF_MODE_NONE)
-    unicast_reply_write(reply, "\t<tsid=\"%d</tsid>\n",autoconf_vars->transport_stream_id);
+    unicast_reply_write(reply, "\t<tsid>%d</tsid>\n",autoconf_vars->transport_stream_id);
 
   // Ending XML content
   unicast_reply_write(reply, "</mumudvb>\n");
