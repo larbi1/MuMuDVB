@@ -724,6 +724,11 @@ int
       substring = strtok (NULL, delimiteurs);
       card_buffer.max_thread_buffer_size = atoi (substring);
     }
+    else if (!strcmp (substring, "transport_stream_id"))
+    {
+      substring = strtok (NULL, delimiteurs);
+      autoconf_vars.transport_stream_id = atoi (substring);
+    }	
     else if ((!strcmp (substring, "service_id")) || (!strcmp (substring, "ts_id")))
     {
       if(!strcmp (substring, "ts_id"))
